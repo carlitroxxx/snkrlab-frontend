@@ -214,3 +214,149 @@ img {
     background-color: var(--borde);
     color: var(--texto);
 }
+
+.sesionUsuario {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.avatarBoton {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--naranjo);
+    color: var(--negro);
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-family: var(--fuente-base);
+    font-size: 0.95rem;
+}
+
+.avatarBoton:hover {
+    background-color: #ff8140;
+}
+
+.sesionUsuarioNombre {
+    font-size: 0.9rem;
+    color: var(--texto-tenue);
+}
+
+.perfilPopup {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 1rem;
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+}
+
+.perfilPopup label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--texto-tenue);
+}
+
+.perfilPopup input {
+    background-color: var(--negro);
+    border: 1px solid var(--borde);
+    border-radius: 4px;
+    color: var(--texto);
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    font-family: var(--fuente-base);
+}
+
+.perfilPopupError {
+    color: var(--rojo);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.volverCatalogo {
+    display: inline-block;
+    color: var(--naranjo);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.detalleProducto {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+}
+
+.detalleProductoImagen {
+    position: relative;
+    background-color: #fff;
+    border-radius: 8px;
+    aspect-ratio: 1 / 1;
+}
+
+.detalleProductoImagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2rem;
+}
+
+.detalleProductoMarca {
+    color: var(--naranjo);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+.detalleProductoInfo h2 {
+    font-family: var(--fuente-base);
+    font-size: 1.6rem;
+    margin: 0.4rem 0;
+    text-transform: none;
+}
+
+.detalleProductoModelo {
+    color: var(--texto-tenue);
+    font-size: 0.85rem;
+    margin: 0 0 1rem;
+}
+
+.detalleProductoDescripcion {
+    color: var(--texto);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.detalleProductoPrecioFila {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.detalleProductoPrecioFila .precio {
+    font-size: 1.5rem;
+}
+
+.detalleProductoStock {
+    font-size: 0.85rem;
+    color: var(--texto-tenue);
+}
+.detalleProductoMensaje {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--naranjo);
+}
