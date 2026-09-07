@@ -3,9 +3,9 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { PublicClientApplication, EventType } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
-import { msalConfig } from "./auth/AuthConfig";
+import { msalConfig } from "./features/auth/AuthConfig";
 import App from "./App.jsx";
-import "./index.css";
+import "./estilos.css";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 

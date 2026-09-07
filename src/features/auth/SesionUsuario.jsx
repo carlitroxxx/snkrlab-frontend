@@ -1,8 +1,9 @@
 import "react";
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "../auth/AuthConfig";
+import { loginRequest } from "./AuthConfig";
+import { Boton } from "../../components/Boton";
 
-export function BotonSesion() {
+export function SesionUsuario() {
     const { instance, accounts } = useMsal();
 
     const iniciarSesion = () => {
@@ -19,16 +20,16 @@ export function BotonSesion() {
 
     if (accounts.length > 0) {
         return (
-            <div>
-                <span>{accounts[0].name}</span>
-                <button onClick={cerrarSesion}>Cerrar sesión</button>
+            <div className="sesionUsuario">
+                <span className="sesionUsuarioNombre">{accounts[0].name}</span>
+                <Boton variante="linea" onClick={cerrarSesion}>Cerrar sesión</Boton>
             </div>
         );
     }
 
     return (
-        <button onClick={iniciarSesion}>
+        <Boton variante="microsoft" onClick={iniciarSesion}>
             Iniciar sesión con Microsoft
-        </button>
+        </Boton>
     );
 }

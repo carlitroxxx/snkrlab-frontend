@@ -1,4 +1,4 @@
-import { apiRequest } from "../auth/AuthConfig";
+import { apiRequest } from "../features/auth/AuthConfig";
 
 
 export async function obtenerToken(msalInstance, account) {

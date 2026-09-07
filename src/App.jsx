@@ -1,12 +1,12 @@
-import { BotonSesion } from "./components/BotonSesion";
+import { Routes, Route } from "react-router-dom";
+import { Catalogo } from "./pages/Catalogo";
 
 function App() {
-  return (
-      <div>
-        <h1>SNKRLAB</h1>
-        <BotonSesion />
-      </div>
-  );
+    return (
+        <Routes>
+            <Route path="/" element={<Catalogo />} />
+        </Routes>
+    );
 }
 
 export default App;
