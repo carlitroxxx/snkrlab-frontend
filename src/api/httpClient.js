@@ -24,8 +24,14 @@ export async function apiFetch(url, { msalInstance, account, ...options } = {}) 
     const res = await fetch(url, { ...options, headers });
 
     if (!res.ok) {
-        const texto = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status} ${res.statusText}${texto ? ` - ${texto}` : ""}`);
+        let mensaje = `${res.status} ${res.statusText}`;
+        try {
+            const cuerpo = await res.json();
+            if (cuerpo?.mensaje) mensaje = cuerpo.mensaje;
+        } catch {
+            // mensaje generico
+        }
+        throw new Error(mensaje);
     }
 
     if (res.status === 204) return null;

@@ -361,16 +361,21 @@ img {
     color: var(--naranjo);
 }
 .navbarCarrito {
-    font-family: var(--fuente-base);
-    font-weight: 600;
-    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-right: auto;
     margin-left: 2rem;
     color: var(--texto);
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .navbarCarrito:hover {
     color: var(--naranjo);
+    background-color: var(--bg-tarjeta);
 }
 
 .carritoLista {
