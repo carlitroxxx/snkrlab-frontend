@@ -37,9 +37,9 @@ export async function apiFetch(url, { msalInstance, account, ...options } = {}) 
     if (res.status === 204) return null;
     return res.json();
 }
-
+const BASE_URL = "https://lezwrow0m9.execute-api.us-east-1.amazonaws.com/desarrollo";
 export const API = {
-    auth: import.meta.env.VITE_AUTH_API_URL || "http://localhost:8081/api/v1/auth",
-    productos: import.meta.env.VITE_PRODUCTOS_API_URL || "http://localhost:8082/api/v1/productos",
-    carrito: import.meta.env.VITE_CARRITO_API_URL || "http://localhost:8083/api/v1/carrito",
+    auth: `${BASE_URL}/api/v1/auth`,
+    productos: `${BASE_URL}/api/v1/productos`,
+    carrito: `${BASE_URL}/api/v1/carrito`,
 };
