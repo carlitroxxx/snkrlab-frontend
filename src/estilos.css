@@ -360,3 +360,81 @@ img {
     font-size: 0.85rem;
     color: var(--naranjo);
 }
+.navbarCarrito {
+    font-family: var(--fuente-base);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-right: auto;
+    margin-left: 2rem;
+    color: var(--texto);
+}
+
+.navbarCarrito:hover {
+    color: var(--naranjo);
+}
+
+.carritoLista {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.carritoItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.carritoItemInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.carritoItemCantidad {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.carritoItemCantidad button {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid var(--borde);
+    background-color: var(--negro);
+    color: var(--texto);
+    cursor: pointer;
+}
+
+.carritoResumen {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    border-top: 1px solid var(--borde);
+    padding-top: 1rem;
+}
+
+.carritoError {
+    color: var(--rojo);
+    margin-bottom: 1rem;
+}
+
+.checkoutConfirmacion {
+    background-color: var(--bg-tarjeta);
+    border: 1px solid var(--naranjo);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}

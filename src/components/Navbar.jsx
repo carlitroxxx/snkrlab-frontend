@@ -7,6 +7,7 @@ export function Navbar() {
             <Link to="/" className="navbarMarca">
                 <img src="/snkrlab-logo.jpg" alt="SNKRLAB" className="navbarLogo" />
             </Link>
+            <Link to="/carrito" className="navbarCarrito">Carrito</Link>
             <SesionUsuario />
         </header>
     );
