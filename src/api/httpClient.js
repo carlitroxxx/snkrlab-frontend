@@ -37,7 +37,7 @@ export async function apiFetch(url, { msalInstance, account, ...options } = {}) 
     if (res.status === 204) return null;
     return res.json();
 }
-const BASE_URL = "https://lezwrow0m9.execute-api.us-east-1.amazonaws.com/desarrollo";
+const BASE_URL = "https://0jz2me6tu1.execute-api.us-east-1.amazonaws.com/desarrollo";
 export const API = {
     auth: `${BASE_URL}/api/v1/auth`,
     productos: `${BASE_URL}/api/v1/productos`,
