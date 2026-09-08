@@ -28,7 +28,7 @@ await msalInstance.handleRedirectPromise().catch((error) => {
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         <MsalProvider instance={msalInstance}>
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.VITE_BASENAME || "/"}>
                 <App />
             </BrowserRouter>
         </MsalProvider>

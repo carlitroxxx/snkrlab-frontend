@@ -89,8 +89,27 @@ export function Carrito() {
                 <h2>Carrito</h2>
                 <div className="checkoutConfirmacion">
                     <p>{resultadoCompra.mensaje}</p>
-                    <p>Items comprados: {resultadoCompra.cantidadItems}</p>
-                    <p><Precio valor={resultadoCompra.total} /></p>
+
+                    <div className="checkoutDetalleLista">
+                        {resultadoCompra.items?.map((item, index) => (
+                            <div key={index} className="checkoutDetalleItem">
+                                <div className="checkoutDetalleNombre">{item.nombreProducto}</div>
+                                <div className="checkoutDetalleFila">
+                                    <span>Cantidad: {item.cantidad}</span>
+                                    <span>Precio unidad: <Precio valor={item.precioUnitario} /></span>
+                                </div>
+                                <div className="checkoutDetalleSubtotal">
+                                    Subtotal: <Precio valor={item.subtotal} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="checkoutDivisor" />
+
+                    <p>Productos comprados: {resultadoCompra.cantidadItems}</p>
+                    <p className="checkoutTotal">Total: <Precio valor={resultadoCompra.total} /></p>
+
                     <Link to="/"><Boton>Seguir comprando</Boton></Link>
                 </div>
             </Layout>
@@ -113,7 +132,8 @@ export function Carrito() {
                         {items.map((item) => (
                             <div key={item.id} className="carritoItem">
                                 <div className="carritoItemInfo">
-                                    <span>Producto #{item.productoId}</span>
+                                    <span className="carritoItemId">ID: {item.productoId}</span>
+                                    <span className="carritoItemNombre">{item.nombreProducto}</span>
                                     <Precio valor={item.precioUnitario} />
                                 </div>
 

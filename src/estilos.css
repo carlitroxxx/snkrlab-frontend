@@ -400,7 +400,14 @@ img {
     flex-direction: column;
     gap: 0.25rem;
 }
+.carritoItemId {
+    font-size: 0.7rem;
+    color: var(--texto-tenue);
+}
 
+.carritoItemNombre {
+    font-weight: 600;
+}
 .carritoItemCantidad {
     display: flex;
     align-items: center;
@@ -442,4 +449,43 @@ img {
     flex-direction: column;
     gap: 0.5rem;
     max-width: 400px;
+}
+
+.checkoutDetalleLista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.checkoutDetalleItem {
+    border-bottom: 1px dashed var(--borde);
+    padding-bottom: 0.5rem;
+}
+
+.checkoutDetalleNombre {
+    font-weight: 600;
+}
+
+.checkoutDetalleFila {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--texto-tenue);
+    margin-top: 0.25rem;
+}
+
+.checkoutDetalleSubtotal {
+    text-align: right;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.checkoutDivisor {
+    border-top: 1px solid var(--borde);
+    margin: 0.5rem 0;
+}
+
+.checkoutTotal {
+    font-size: 1.2rem;
+    font-weight: 700;
 }
