@@ -4,9 +4,9 @@ import { SesionUsuario } from "../features/auth/SesionUsuario";
 export function Navbar() {
     return (
         <header className="navbar">
-            <Link to="/" className="navbarMarca">
+            <a href={`${import.meta.env.VITE_BASENAME || ""}/`} className="navbarMarca">
                 <img src="/snkrlab-logo.jpg" alt="SNKRLAB" className="navbarLogo" />
-            </Link>
+            </a>
             <Link to="/carrito" className="navbarCarrito" aria-label="Ver carrito">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
