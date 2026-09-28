@@ -7,6 +7,9 @@ export function Navbar() {
             <a href={`${import.meta.env.VITE_BASENAME || ""}/`} className="navbarMarca">
                 <img src="/snkrlab-logo.jpg" alt="SNKRLAB" className="navbarLogo" />
             </a>
+            <Link to="/ordenes" className="navbarOrdenes">
+                Mis órdenes
+            </Link>
             <Link to="/carrito" className="navbarCarrito" aria-label="Ver carrito">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"

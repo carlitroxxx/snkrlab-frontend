@@ -8,3 +8,9 @@ export function enviarComprobante(msalInstance, account, ordenId, correo) {
         body: JSON.stringify({ correo }),
     });
 }
+export function obtenerMisOrdenes(msalInstance, account) {
+    return apiFetch(API.ordenes, {
+        msalInstance,
+        account,
+    });
+}

@@ -199,7 +199,9 @@ export function Carrito() {
                             </p>
                         )}
                     </form>
-
+                    <Link to="/ordenes" className="boton botonLinea">
+                        Ver mis órdenes
+                    </Link>
                     <Link to="/"><Boton>Seguir comprando</Boton></Link>
                 </div>
             </Layout>
