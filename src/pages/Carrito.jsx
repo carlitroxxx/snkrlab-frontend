@@ -11,6 +11,7 @@ import { Layout } from "../components/Layout";
 import { Precio } from "../components/Precio";
 import { Boton } from "../components/Boton";
 import { loginRequest } from "../features/auth/AuthConfig";
+import { enviarComprobante } from "../features/ordenes/ordenesApi";
 
 export function Carrito() {
     const { instance, accounts } = useMsal();
@@ -22,6 +23,10 @@ export function Carrito() {
     const [error, setError] = useState(null);
     const [confirmando, setConfirmando] = useState(false);
     const [resultadoCompra, setResultadoCompra] = useState(null);
+    const [correo, setCorreo] = useState("");
+    const [enviandoCorreo, setEnviandoCorreo] = useState(false);
+    const [mensajeCorreo, setMensajeCorreo] = useState("");
+    const [errorCorreo, setErrorCorreo] = useState("");
 
     const cargarCarrito = async () => {
         setCargando(true);
@@ -69,6 +74,44 @@ export function Carrito() {
         }
     };
 
+    const manejarEnviarComprobante = async (event) => {
+        event.preventDefault();
+
+        if (enviandoCorreo) return;
+
+        setMensajeCorreo("");
+        setErrorCorreo("");
+
+        if (!resultadoCompra?.ordenId) {
+            setErrorCorreo("No se encontró el número de la orden.");
+            return;
+        }
+
+        if (!accounts[0]) {
+            setErrorCorreo("Necesitas iniciar sesión nuevamente.");
+            return;
+        }
+
+        setEnviandoCorreo(true);
+
+        try {
+            const respuesta = await enviarComprobante(
+                instance,
+                accounts[0],
+                resultadoCompra.ordenId,
+                correo.trim()
+            );
+
+            if (!respuesta) return;
+
+            setMensajeCorreo(respuesta.mensaje);
+        } catch (err) {
+            setErrorCorreo("No se pudo solicitar el comprobante: " + err.message);
+        } finally {
+            setEnviandoCorreo(false);
+        }
+    };
+
     if (!isAuthenticated) {
         return (
             <Layout>
@@ -88,6 +131,8 @@ export function Carrito() {
             <Layout>
                 <h2>Carrito</h2>
                 <div className="checkoutConfirmacion">
+                    <h3>Comprobante de compra</h3>
+                    <p>Orden N.º {resultadoCompra.ordenId}</p>
                     <p>{resultadoCompra.mensaje}</p>
 
                     <div className="checkoutDetalleLista">
@@ -109,6 +154,51 @@ export function Carrito() {
 
                     <p>Productos comprados: {resultadoCompra.cantidadItems}</p>
                     <p className="checkoutTotal">Total: <Precio valor={resultadoCompra.total} /></p>
+
+                    <div className="checkoutDivisor" />
+
+                    <form
+                        className="comprobanteFormulario"
+                        onSubmit={manejarEnviarComprobante}
+                    >
+                        <label htmlFor="correoComprobante">
+                            Recibir comprobante por correo
+                        </label>
+
+                        <input
+                            id="correoComprobante"
+                            name="correo"
+                            type="email"
+                            autoComplete="email"
+                            placeholder="tu-correo@ejemplo.com"
+                            value={correo}
+                            onChange={(event) => {
+                                setCorreo(event.target.value);
+                                setMensajeCorreo("");
+                                setErrorCorreo("");
+                            }}
+                            required
+                            maxLength={254}
+                            disabled={enviandoCorreo}
+                        />
+
+                        <Boton
+                            type="submit"
+                            disabled={enviandoCorreo || !resultadoCompra.ordenId}
+                        >
+                            {enviandoCorreo ? "Solicitando envío..." : "Enviar comprobante"}
+                        </Boton>
+
+                        {mensajeCorreo && (
+                            <p role="status">{mensajeCorreo}</p>
+                        )}
+
+                        {errorCorreo && (
+                            <p className="carritoError" role="alert">
+                                {errorCorreo}
+                            </p>
+                        )}
+                    </form>
 
                     <Link to="/"><Boton>Seguir comprando</Boton></Link>
                 </div>

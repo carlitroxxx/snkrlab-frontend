@@ -42,4 +42,5 @@ export const API = {
     auth: import.meta.env.VITE_API_AUTH_URL,
     productos: import.meta.env.VITE_API_PRODUCTOS_URL,
     carrito: import.meta.env.VITE_API_CARRITO_URL,
+    ordenes: import.meta.env.VITE_API_ORDENES_URL,
 };
