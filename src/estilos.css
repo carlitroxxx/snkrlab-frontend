@@ -45,6 +45,8 @@ img {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
     padding: 0.75rem 1.5rem;
     background-color: var(--negro);
     border-bottom: 3px solid var(--naranjo);
@@ -92,16 +94,12 @@ img {
     color: var(--naranjo);
 }
 
-.botonMicrosoft {
-    background-color: #fff;
-    color: #111;
-}
-
 /* Sesion usuario */
 .sesionUsuario {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    position: relative;
 }
 
 .sesionUsuarioNombre {
@@ -111,6 +109,7 @@ img {
 
 /* Layout */
 .layoutContenido {
+    width: 100%;
     max-width: 1100px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
@@ -205,23 +204,6 @@ img {
     text-transform: uppercase;
 }
 
-.etiquetaAlerta {
-    background-color: var(--rojo);
-    color: white;
-}
-
-.etiquetaNeutro {
-    background-color: var(--borde);
-    color: var(--texto);
-}
-
-.sesionUsuario {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
 .avatarBoton {
     width: 36px;
     height: 36px;
@@ -237,11 +219,6 @@ img {
 
 .avatarBoton:hover {
     background-color: #ff8140;
-}
-
-.sesionUsuarioNombre {
-    font-size: 0.9rem;
-    color: var(--texto-tenue);
 }
 
 .perfilPopup {
@@ -807,21 +784,221 @@ img {
     transform: none;
 }
 
-/* Adaptación a pantallas pequeñas */
+.botonMicrosoft {
+    background-color: #fff;
+    color: #111;
+}
 
+.etiquetaAlerta {
+    background-color: var(--rojo);
+    color: white;
+}
+
+.etiquetaNeutro {
+    background-color: var(--borde);
+    color: var(--texto);
+}
+
+/* Reportes: estilos generales para todos los tamaños */
+.reportes {
+    display: grid;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.reportes h2,
+.reportes p {
+    margin: 0;
+}
+
+.reportesFiltros {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto auto;
+    align-items: end;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+.reporteCampoFecha {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.reporteCampoFecha label {
+    color: #c5c5c5;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.reporteCampoFecha input[type="date"] {
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    padding: 0 0.875rem;
+    border: 1px solid #484848;
+    border-radius: 7px;
+    background: var(--bg);
+    color: var(--texto);
+    font: inherit;
+    color-scheme: dark;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.reporteCampoFecha input:hover {
+    border-color: #777;
+}
+
+.reporteCampoFecha input:focus {
+    outline: none;
+    border-color: var(--naranjo);
+    box-shadow: 0 0 0 3px rgb(255 106 26 / 15%);
+}
+
+.reporteCampoFecha input::-webkit-calendar-picker-indicator {
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.85;
+}
+
+.reportesFiltros .boton {
+    height: 46px;
+    padding: 0 1.5rem;
+    border-radius: 7px;
+}
+
+.reportes button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+}
+
+.reportesPeriodo {
+    color: var(--texto-tenue);
+    line-height: 1.5;
+}
+
+.reportesError {
+    color: #ff9c9c;
+}
+
+.reportesIndicadores {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.reportesIndicadores article {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: var(--bg-tarjeta);
+}
+
+.reportesIndicadores span {
+    color: var(--texto-tenue);
+}
+
+.reportesIndicadores strong {
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    color: var(--naranjo);
+    overflow-wrap: anywhere;
+}
+
+.reportesSeccion {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.reportesTablaContenedor {
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.reportesTabla {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-tarjeta);
+}
+
+.reportesTabla th,
+.reportesTabla td {
+    padding: 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid var(--borde);
+}
+
+.reportesTabla th {
+    color: var(--naranjo);
+}
+
+.reportesTabla td:not(:first-child) {
+    white-space: nowrap;
+}
+
+.reportesVenta {
+    min-width: 0;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--bg-tarjeta);
+}
+
+.reportesVenta summary {
+    padding: 1rem;
+    cursor: pointer;
+    line-height: 1.6;
+}
+
+.reportesVenta summary span,
+.reportesVenta summary strong {
+    display: inline-block;
+    margin-right: 1rem;
+}
+
+.reportesVenta summary strong {
+    color: var(--naranjo);
+}
+
+.reportes :focus-visible {
+    outline: 2px solid var(--naranjo);
+    outline-offset: 3px;
+}
+
+/* Adaptación a pantallas pequeñas */
 @media (max-width: 700px) {
     .navbar {
-        flex-wrap: wrap;
         gap: 0.75rem;
         padding: 0.75rem 1rem;
     }
 
-    .navbarOrdenes {
+    .navbarOrdenes,
+    .navbarCarrito {
         margin-left: 0;
     }
 
-    .navbarCarrito {
-        margin-left: 0;
+    .sesionUsuario {
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .sesionUsuarioNombre {
+        overflow-wrap: anywhere;
+        min-width: 0;
+    }
+
+    .detalleProducto {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .carritoItem {
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
     .ordenCabecera {
@@ -842,15 +1019,32 @@ img {
         justify-self: end;
     }
 
-    .ordenContenido {
-        padding: 1rem;
-    }
-
+    .ordenContenido,
     .ordenCorreo {
         padding: 1rem;
     }
 
     .ordenCorreoCampos {
         flex-direction: column;
+    }
+
+    .reportesFiltros {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .reportesIndicadores {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 420px) {
+    .reportesFiltros {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .layoutContenido {
+        padding: 1.5rem 1rem;
     }
 }

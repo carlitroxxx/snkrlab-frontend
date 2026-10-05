@@ -10,6 +10,9 @@ export function Navbar() {
             <Link to="/ordenes" className="navbarOrdenes">
                 Mis órdenes
             </Link>
+            <Link to="/reportes" className="navbarOrdenes">
+                Reportes
+            </Link>
             <Link to="/carrito" className="navbarCarrito" aria-label="Ver carrito">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"

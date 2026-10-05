@@ -3,6 +3,7 @@ import { Catalogo } from "./pages/Catalogo";
 import { DetalleProducto } from "./pages/DetalleProducto";
 import { Carrito } from "./pages/Carrito";
 import {MisOrdenes} from "./pages/MisOrdenes.jsx";
+import { Reportes } from "./pages/Reportes";
 
 function App() {
     return (
@@ -11,6 +12,7 @@ function App() {
             <Route path="/producto/:id" element={<DetalleProducto />} />
             <Route path="/carrito" element={<Carrito />} />
             <Route path="/ordenes" element={<MisOrdenes />} />
+            <Route path="/reportes" element={<Reportes />} />
         </Routes>
     );
 }
