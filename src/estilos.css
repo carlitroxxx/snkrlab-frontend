@@ -1048,3 +1048,49 @@ img {
         padding: 1.5rem 1rem;
     }
 }
+
+/* Exportación de reportes */
+.reportesExportacion {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1.25rem;
+    background: var(--bg-tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+}
+
+.reportesExportacionAcciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.reportesExportacion > .boton {
+    justify-self: start;
+}
+
+.reportesExportacion p {
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.reportesArchivoListo {
+    color: #8cddac;
+    font-weight: 600;
+}
+
+.reportesExportacion [role="status"]:empty {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .reportesExportacionAcciones {
+        flex-direction: column;
+    }
+
+    .reportesExportacionAcciones .boton,
+    .reportesExportacion > .boton {
+        width: 100%;
+    }
+}

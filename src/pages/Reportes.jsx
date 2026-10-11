@@ -3,6 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import { Layout } from "../components/Layout";
 import { Boton } from "../components/Boton";
 import { obtenerReportes } from "../features/reportes/reportesApi";
+import { ExportarReportes } from "../features/reportes/ExportarReportes";
 
 const moneda = new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -181,6 +182,13 @@ export function Reportes() {
                         {cargando && (
                             <p role="status">Consultando ventas...</p>
                         )}
+                        <ExportarReportes
+                            key={cuentaId}
+                            instance={instance}
+                            cuentaId={cuentaId}
+                            filtros={consulta}
+                            bloqueado={cargando || Boolean(error)}
+                        />
 
                         {!error && datosActuales && resumen && (
                             <>
