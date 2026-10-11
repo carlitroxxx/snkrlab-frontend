@@ -43,8 +43,9 @@ async function peticion(instance, account, ruta, opciones = {}) {
             // Conserva el código HTTP si no hay respuesta JSON.
         }
 
-        throw new Error(mensaje);
-    }
+        const error = new Error(mensaje);
+        error.status = respuesta.status;
+        throw error;    }
 
     return respuesta;
 }

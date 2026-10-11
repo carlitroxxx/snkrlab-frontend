@@ -15,14 +15,17 @@ export function ExportarReportes({
     const [exportacion, setExportacion] = useState(null);
     const [enviando, setEnviando] = useState(false);
     const [descargando, setDescargando] = useState(false);
-    const [pausado, setPausado] = useState(false);
+    const [reconectando, setReconectando] = useState(false);
+    const [seguimientoFallido, setSeguimientoFallido] = useState(false);
     const [error, setError] = useState("");
 
     const operacion = useRef(null);
 
     const id = exportacion?.id;
     const estado = exportacion?.estado;
-    const pendiente = estado === "PENDIENTE";
+
+    const esperando =
+        estado === "PENDIENTE" && !seguimientoFallido;
 
     function obtenerCuenta() {
         return instance.getAllAccounts().find(
@@ -30,24 +33,24 @@ export function ExportarReportes({
         );
     }
 
-    // Cancela una solicitud o descarga si se desmonta el componente.
     useEffect(() => {
         return () => operacion.current?.abort();
     }, []);
 
     useEffect(() => {
-        if (!id || estado !== "PENDIENTE" || pausado) return;
+        if (!id || estado !== "PENDIENTE" || seguimientoFallido) {
+            return;
+        }
 
         const controller = new AbortController();
         let temporizador;
-        let intentos = 0;
-
-        const cuenta = instance.getAllAccounts().find(
-            (actual) => actual.homeAccountId === cuentaId
-        );
 
         async function revisar() {
             try {
+                const cuenta = instance.getAllAccounts().find(
+                    (actual) => actual.homeAccountId === cuentaId
+                );
+
                 const resultado = await consultarExportacion(
                     instance,
                     cuenta,
@@ -58,28 +61,51 @@ export function ExportarReportes({
                 if (controller.signal.aborted) return;
 
                 if (!["PENDIENTE", "LISTO", "ERROR"].includes(resultado.estado)) {
-                    throw new Error("El servidor devolvió un estado desconocido.");
+                    throw new Error(
+                        "El servidor devolvió un estado desconocido."
+                    );
                 }
 
+                setReconectando(false);
                 setExportacion(resultado);
 
-                if (resultado.estado !== "PENDIENTE") {
-                    return;
+                // Solo programa otra consulta si sigue pendiente.
+                if (resultado.estado === "PENDIENTE") {
+                    temporizador = setTimeout(revisar, 3000);
                 }
-
-                intentos += 1;
-
-                if (intentos >= 40) {
-                    setPausado(true);
-                    return;
-                }
-
-                temporizador = setTimeout(revisar, 3000);
             } catch (err) {
                 if (controller.signal.aborted) return;
 
-                setError(`No se pudo consultar el estado: ${err.message}`);
-                setPausado(true);
+                const temporal =
+                    err instanceof TypeError ||
+                    err.status === 408 ||
+                    err.status === 429 ||
+                    err.status >= 500;
+
+                if (temporal) {
+                    // Mantiene la animación y reintenta automáticamente.
+                    setReconectando(true);
+                    temporizador = setTimeout(revisar, 5000);
+                    return;
+                }
+
+                // Los errores definitivos detienen el seguimiento.
+                setReconectando(false);
+                setSeguimientoFallido(true);
+
+                if (err.status === 401 || err.status === 403) {
+                    setError(
+                        "No se pudo verificar la solicitud. Revisa tu sesión y tus permisos."
+                    );
+                } else if (err.status === 404) {
+                    setError(
+                        "La solicitud ya no está disponible. Solicita una nueva exportación."
+                    );
+                } else {
+                    setError(
+                        err.message || "No se pudo consultar la exportación."
+                    );
+                }
             }
         }
 
@@ -89,17 +115,18 @@ export function ExportarReportes({
             clearTimeout(temporizador);
             controller.abort();
         };
-    }, [instance, cuentaId, id, estado, pausado]);
+    }, [instance, cuentaId, id, estado, seguimientoFallido]);
 
     async function solicitar(tipo) {
-        if (operacion.current || pendiente || bloqueado) return;
+        if (operacion.current || esperando || bloqueado) return;
 
         const controller = new AbortController();
         operacion.current = controller;
 
         setEnviando(true);
         setError("");
-        setPausado(false);
+        setReconectando(false);
+        setSeguimientoFallido(false);
         setExportacion(null);
 
         try {
@@ -116,7 +143,9 @@ export function ExportarReportes({
             }
         } catch (err) {
             if (!controller.signal.aborted) {
-                setError(`No se pudo solicitar el archivo: ${err.message}`);
+                setError(
+                    `No se pudo confirmar la solicitud del archivo: ${err.message}`
+                );
             }
         } finally {
             if (operacion.current === controller) {
@@ -147,7 +176,9 @@ export function ExportarReportes({
             );
         } catch (err) {
             if (!controller.signal.aborted) {
-                setError(`No se pudo descargar el archivo: ${err.message}`);
+                setError(
+                    `No se pudo descargar el archivo: ${err.message}`
+                );
             }
         } finally {
             if (operacion.current === controller) {
@@ -161,7 +192,7 @@ export function ExportarReportes({
     }
 
     const botonesDeshabilitados =
-        bloqueado || enviando || pendiente || descargando;
+        bloqueado || enviando || esperando || descargando;
 
     return (
         <section className="reportesExportacion">
@@ -191,39 +222,50 @@ export function ExportarReportes({
                 </Boton>
             </div>
 
-            <div role="status" aria-live="polite">
-                {enviando && <p>Enviando solicitud...</p>}
+            <div role="status" aria-live="polite" aria-atomic="true">
+                {(enviando || esperando) && (
+                    <div className="exportacionEstado">
+                        <span
+                            className="exportacionSpinner"
+                            aria-hidden="true"
+                        />
 
-                {pendiente && !pausado && (
-                    <p>Generando archivo… Te avisaremos aquí cuando esté listo.</p>
-                )}
+                        <div>
+                            <p className="exportacionEstadoTitulo">
+                                {enviando
+                                    ? "Enviando solicitud…"
+                                    : "Preparando tu archivo…"}
+                            </p>
 
-                {pendiente && pausado && (
-                    <p>
-                        La revisión automática está pausada.
-                        Puedes volver a consultar el estado.
-                    </p>
+                            <p className="reportesPeriodo">
+                                {reconectando
+                                    ? "Restableciendo conexión con el servidor. Seguimos esperando tu archivo."
+                                    : "La descarga estará disponible aquí cuando termine."}
+                            </p>
+                        </div>
+                    </div>
                 )}
 
                 {estado === "LISTO" && (
-                    <p className="reportesArchivoListo">
-                        Tu archivo está listo: {exportacion.nombreArchivo}
-                    </p>
+                    <div className="exportacionEstado">
+                        <span
+                            className="exportacionCheck"
+                            aria-hidden="true"
+                        >
+                            ✓
+                        </span>
+
+                        <div>
+                            <p className="reportesArchivoListo">
+                                Tu archivo está listo
+                            </p>
+                            <p className="reportesPeriodo">
+                                {exportacion.nombreArchivo}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
-
-            {pendiente && pausado && (
-                <Boton
-                    type="button"
-                    variante="linea"
-                    onClick={() => {
-                        setError("");
-                        setPausado(false);
-                    }}
-                >
-                    Volver a consultar estado
-                </Boton>
-            )}
 
             {estado === "LISTO" && (
                 <Boton
@@ -231,7 +273,7 @@ export function ExportarReportes({
                     onClick={descargar}
                     disabled={descargando}
                 >
-                    {descargando ? "Descargando..." : "Descargar CSV"}
+                    {descargando ? "Descargando…" : "Descargar CSV"}
                 </Boton>
             )}
 
