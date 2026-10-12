@@ -4,6 +4,7 @@ import {
     solicitarExportacion,
     consultarExportacion,
     descargarExportacion,
+    obtenerUltimaExportacion,
 } from "./exportacionesApi";
 
 export function ExportarReportes({
@@ -27,6 +28,9 @@ export function ExportarReportes({
     const esperando =
         estado === "PENDIENTE" && !seguimientoFallido;
 
+    const [recuperando, setRecuperando] = useState(true);
+
+
     function obtenerCuenta() {
         return instance.getAllAccounts().find(
             (cuenta) => cuenta.homeAccountId === cuentaId
@@ -36,6 +40,70 @@ export function ExportarReportes({
     useEffect(() => {
         return () => operacion.current?.abort();
     }, []);
+
+    // Recupera la última solicitud al entrar al panel.
+    useEffect(() => {
+        const controller = new AbortController();
+        let temporizador;
+
+        async function recuperar() {
+            try {
+                const cuenta = instance.getAllAccounts().find(
+                    (actual) => actual.homeAccountId === cuentaId
+                );
+
+                const ultima = await obtenerUltimaExportacion(
+                    instance,
+                    cuenta,
+                    controller.signal
+                );
+
+                if (controller.signal.aborted) return;
+
+                if (
+                    ultima &&
+                    !["PENDIENTE", "LISTO", "ERROR"].includes(ultima.estado)
+                ) {
+                    throw new Error(
+                        "El servidor devolvió un estado desconocido."
+                    );
+                }
+
+                setExportacion(ultima);
+                setReconectando(false);
+                setSeguimientoFallido(false);
+                setError("");
+                setRecuperando(false);
+            } catch (err) {
+                if (controller.signal.aborted) return;
+
+                const temporal =
+                    err instanceof TypeError ||
+                    err.status === 408 ||
+                    err.status === 429 ||
+                    err.status >= 500;
+
+                if (temporal) {
+                    setReconectando(true);
+                    temporizador = setTimeout(recuperar, 5000);
+                    return;
+                }
+
+                setReconectando(false);
+                setRecuperando(false);
+                setError(
+                    `No se pudo recuperar la última exportación: ${err.message}`
+                );
+            }
+        }
+
+        recuperar();
+
+        return () => {
+            clearTimeout(temporizador);
+            controller.abort();
+        };
+    }, [instance, cuentaId]);
 
     useEffect(() => {
         if (!id || estado !== "PENDIENTE" || seguimientoFallido) {
@@ -118,7 +186,14 @@ export function ExportarReportes({
     }, [instance, cuentaId, id, estado, seguimientoFallido]);
 
     async function solicitar(tipo) {
-        if (operacion.current || esperando || bloqueado) return;
+        if (
+            operacion.current ||
+            recuperando ||
+            esperando ||
+            bloqueado
+        ) {
+            return;
+        }
 
         const controller = new AbortController();
         operacion.current = controller;
@@ -192,7 +267,11 @@ export function ExportarReportes({
     }
 
     const botonesDeshabilitados =
-        bloqueado || enviando || esperando || descargando;
+        bloqueado ||
+        recuperando ||
+        enviando ||
+        esperando ||
+        descargando;
 
     return (
         <section className="reportesExportacion">
@@ -223,24 +302,28 @@ export function ExportarReportes({
             </div>
 
             <div role="status" aria-live="polite" aria-atomic="true">
-                {(enviando || esperando) && (
+                {(recuperando || enviando || esperando) && (
                     <div className="exportacionEstado">
-                        <span
-                            className="exportacionSpinner"
-                            aria-hidden="true"
-                        />
+        <span
+            className="exportacionSpinner"
+            aria-hidden="true"
+        />
 
                         <div>
                             <p className="exportacionEstadoTitulo">
-                                {enviando
-                                    ? "Enviando solicitud…"
-                                    : "Preparando tu archivo…"}
+                                {recuperando
+                                    ? "Recuperando tu última solicitud…"
+                                    : enviando
+                                        ? "Enviando solicitud…"
+                                        : "Preparando tu archivo…"}
                             </p>
 
                             <p className="reportesPeriodo">
                                 {reconectando
-                                    ? "Restableciendo conexión con el servidor. Seguimos esperando tu archivo."
-                                    : "La descarga estará disponible aquí cuando termine."}
+                                    ? "Restableciendo conexión con el servidor. Reintentando automáticamente."
+                                    : recuperando
+                                        ? "Comprobando si tienes un archivo pendiente o disponible."
+                                        : "La descarga estará disponible aquí cuando termine."}
                             </p>
                         </div>
                     </div>

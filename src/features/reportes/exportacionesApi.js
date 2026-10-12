@@ -116,3 +116,22 @@ export async function descargarExportacion(
 
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function obtenerUltimaExportacion(
+    instance,
+    account,
+    signal
+) {
+    const respuesta = await peticion(
+        instance,
+        account,
+        "/ultima",
+        { signal }
+    );
+
+    if (respuesta.status === 204) {
+        return null;
+    }
+
+    return respuesta.json();
+}
