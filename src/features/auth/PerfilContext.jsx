@@ -72,9 +72,9 @@ export function PerfilProvider({ children }) {
         Boolean(cuentaId && !corresponde);
 
     const roles = perfil?.roles || [];
+
+    const esCliente = roles.includes("Cliente");
     const esAdministrador = roles.includes("Administrador");
-    const tieneAcceso =
-        esAdministrador || roles.includes("Cliente");
 
     return (
         <PerfilContext.Provider
@@ -82,8 +82,8 @@ export function PerfilProvider({ children }) {
                 cargando,
                 error,
                 autenticado: Boolean(cuentaId),
+                esCliente,
                 esAdministrador,
-                tieneAcceso,
             }}
         >
             {children}

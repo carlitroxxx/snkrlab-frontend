@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { obtenerProducto } from "../features/productos/productosApi";
@@ -8,12 +8,17 @@ import { Layout } from "../components/Layout";
 import { Precio } from "../components/Precio";
 import { Etiqueta } from "../components/Etiqueta";
 import { Boton } from "../components/Boton";
+import { usePerfil } from "../features/auth/PerfilContext";
 
 export function DetalleProducto() {
     const { id } = useParams();
     const { instance, accounts } = useMsal();
     const isAuthenticated = useIsAuthenticated();
-
+    const {
+        esCliente,
+        cargando: cargandoPermisos,
+        error: errorPermisos,
+    } = usePerfil();
     const [producto, setProducto] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
@@ -30,17 +35,23 @@ export function DetalleProducto() {
 
     const manejarAgregar = async () => {
         if (!isAuthenticated) {
-            instance.loginRedirect(loginRequest);
+            await instance.loginRedirect(loginRequest);
+            return;
+        }
+
+        if (cargandoPermisos || errorPermisos || !esCliente) {
             return;
         }
 
         setAgregando(true);
         setMensaje(null);
+
         try {
             await agregarAlCarrito(instance, accounts[0], {
                 productoId: producto.id,
                 cantidad: 1,
             });
+
             setMensaje("Agregado al carrito.");
         } catch (err) {
             setMensaje("Error al agregar: " + err.message);
@@ -78,9 +89,28 @@ export function DetalleProducto() {
                         </span>
                     </div>
 
-                    <Boton disabled={agotado || agregando} onClick={manejarAgregar}>
-                        {agotado ? "Agotado" : agregando ? "Agregando..." : "Agregar al carrito"}
-                    </Boton>
+                    {cargandoPermisos ? (
+                        <p role="status">Comprobando permisos...</p>
+                    ) : !isAuthenticated ? (
+                        <Boton onClick={() => instance.loginRedirect(loginRequest)}>
+                            Inicia sesión para comprar
+                        </Boton>
+                    ) : errorPermisos ? (
+                        <p role="alert">{errorPermisos}</p>
+                    ) : esCliente ? (
+                        <Boton
+                            disabled={agotado || agregando}
+                            onClick={manejarAgregar}
+                        >
+                            {agotado
+                                ? "Agotado"
+                                : agregando
+                                    ? "Agregando..."
+                                    : "Agregar al carrito"}
+                        </Boton>
+                    ) : (
+                        <p>Las compras están disponibles para cuentas con rol Cliente.</p>
+                    )}
 
                     {mensaje && <p className="detalleProductoMensaje">{mensaje}</p>}
                 </div>

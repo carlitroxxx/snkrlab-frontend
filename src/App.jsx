@@ -11,14 +11,20 @@ function App() {
     return (
         <PerfilProvider>
             <Routes>
-                <Route element={<RutaProtegida />}>
-                    <Route path="/" element={<Catalogo />}/>
-                    <Route path="/producto/:id" element={<DetalleProducto />}/>
-                    <Route path="/carrito" element={<Carrito />}/>
-                    <Route path="/ordenes" element={<MisOrdenes />}/>
-                    <Route element={<RutaProtegida soloAdministrador />}>
-                        <Route path="/reportes" element={<Reportes />}/>
-                    </Route>
+                <Route path="/" element={<Catalogo />} />
+
+                <Route
+                    path="/producto/:id"
+                    element={<DetalleProducto />}
+                />
+
+                <Route element={<RutaProtegida rol="Cliente" />}>
+                    <Route path="/carrito" element={<Carrito />} />
+                    <Route path="/ordenes" element={<MisOrdenes />} />
+                </Route>
+
+                <Route element={<RutaProtegida rol="Administrador" />}>
+                    <Route path="/reportes" element={<Reportes />} />
                 </Route>
             </Routes>
         </PerfilProvider>

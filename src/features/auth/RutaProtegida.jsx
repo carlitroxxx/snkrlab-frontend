@@ -2,12 +2,12 @@ import { Link, Outlet } from "react-router-dom";
 import { Layout } from "../../components/Layout";
 import { usePerfil } from "./PerfilContext";
 
-export function RutaProtegida({ soloAdministrador = false }) {
+export function RutaProtegida({ rol }) {
     const {
         cargando,
         error,
         autenticado,
-        tieneAcceso,
+        esCliente,
         esAdministrador,
     } = usePerfil();
 
@@ -22,8 +22,9 @@ export function RutaProtegida({ soloAdministrador = false }) {
     if (!autenticado) {
         return (
             <Layout>
-                <h2>Bienvenido a SNKRLAB</h2>
-                <p>Inicia sesión con Microsoft para acceder.</p>
+                <h2>Inicia sesión</h2>
+                <p>Necesitas iniciar sesión para acceder a esta sección.</p>
+                <Link to="/">Volver al catálogo</Link>
             </Layout>
         );
     }
@@ -32,28 +33,23 @@ export function RutaProtegida({ soloAdministrador = false }) {
         return (
             <Layout>
                 <p role="alert">{error}</p>
+                <Link to="/">Volver al catálogo</Link>
             </Layout>
         );
     }
 
-    if (!tieneAcceso) {
-        return (
-            <Layout>
-                <h2>Acceso pendiente</h2>
-                <p>
-                    No tienes un rol asignado para acceder a la aplicación.
-                    Contacta al administrador.
-                </p>
-            </Layout>
-        );
-    }
+    const permitido =
+        (rol === "Cliente" && esCliente) ||
+        (rol === "Administrador" && esAdministrador);
 
-    if (soloAdministrador && !esAdministrador) {
+    if (!permitido) {
         return (
             <Layout>
                 <h2>Acceso restringido</h2>
                 <p>
-                    Los reportes están disponibles solo para administradores.
+                    {!esCliente && !esAdministrador
+                        ? "Tu cuenta no tiene un rol asignado para acceder a esta sección."
+                        : "Tu cuenta no tiene permisos para acceder a esta sección."}
                 </p>
                 <Link to="/">Volver al catálogo</Link>
             </Layout>
