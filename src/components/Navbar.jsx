@@ -16,7 +16,7 @@ export function Navbar() {
         <header className="navbar">
             <Link to="/" className="navbarMarca">
                 <img
-                    src="/snkrlab-logo.jpg"
+                    src={`${import.meta.env.BASE_URL}snkrlab-logo.jpg`}
                     alt="SNKRLAB"
                     className="navbarLogo"
                 />

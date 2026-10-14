@@ -9,6 +9,7 @@ import { Precio } from "../components/Precio";
 import { Etiqueta } from "../components/Etiqueta";
 import { Boton } from "../components/Boton";
 import { usePerfil } from "../features/auth/PerfilContext";
+import { imagenUrl } from "../utils/imagenUrl";
 
 export function DetalleProducto() {
     const { id } = useParams();
@@ -75,7 +76,7 @@ export function DetalleProducto() {
 
             <div className="detalleProducto">
                 <div className="detalleProductoImagen">
-                    <img src={producto.imagen} alt={producto.nombre} />
+                    <img src={imagenUrl(producto.imagen)} alt={producto.nombre} />
                     {agotado && <Etiqueta tono="alerta">Agotado</Etiqueta>}
                 </div>
 

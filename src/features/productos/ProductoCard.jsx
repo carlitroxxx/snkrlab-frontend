@@ -2,6 +2,7 @@ import "react";
 import { Link } from "react-router-dom";
 import { Precio } from "../../components/Precio";
 import { Etiqueta } from "../../components/Etiqueta";
+import { imagenUrl } from "../../utils/imagenUrl";
 
 export function ProductoCard({ producto }) {
     const agotado = producto.stock === 0;
@@ -9,7 +10,11 @@ export function ProductoCard({ producto }) {
     return (
         <Link to={`/producto/${producto.id}`} className="productoCard">
             <div className="productoCardImagen">
-                <img src={producto.imagen} alt={producto.nombre} loading="lazy" />
+                <img
+                    src={imagenUrl(producto.imagen)}
+                    alt={producto.nombre}
+                    loading="lazy"
+                />
                 {agotado && <Etiqueta tono="alerta">Agotado</Etiqueta>}
             </div>
             <div className="productoCardInfo">
