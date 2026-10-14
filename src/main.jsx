@@ -6,6 +6,11 @@ import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./features/auth/AuthConfig";
 import App from "./App.jsx";
 import "./estilos.css";
+import { AuthProvider } from "react-oidc-context";
+import {
+    cognitoManager,
+    completarInicioCognito,
+} from "./features/auth/CognitoConfig";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
@@ -25,12 +30,23 @@ await msalInstance.handleRedirectPromise().catch((error) => {
     console.error("Error procesando el redirect de MSAL:", error);
 });
 
+const procesarRetornoCognito =
+    sessionStorage.getItem("snkrlab-cognito-login") === "true";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         <MsalProvider instance={msalInstance}>
-            <BrowserRouter basename={import.meta.env.VITE_BASENAME || "/"}>
-                <App />
-            </BrowserRouter>
+            <AuthProvider
+                userManager={cognitoManager}
+                onSigninCallback={completarInicioCognito}
+                skipSigninCallback={!procesarRetornoCognito}
+            >
+                <BrowserRouter
+                    basename={import.meta.env.VITE_BASENAME || "/"}
+                >
+                    <App />
+                </BrowserRouter>
+            </AuthProvider>
         </MsalProvider>
     </React.StrictMode>
 );

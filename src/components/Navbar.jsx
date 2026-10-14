@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { SesionUsuario } from "../features/auth/SesionUsuario";
+import { AccesoUsuario } from "../features/auth/AccesoUsuario";
 import { usePerfil } from "../features/auth/PerfilContext";
 
 export function Navbar() {
@@ -58,7 +58,7 @@ export function Navbar() {
                 </Link>
             )}
 
-            <SesionUsuario />
+            <AccesoUsuario />
         </header>
     );
 }
