@@ -1,41 +1,99 @@
+import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { apiRequest } from "../features/auth/AuthConfig";
-
+import {
+    cognitoManager,
+    obtenerTokenCognito,
+} from "../features/auth/CognitoConfig";
 
 export async function obtenerToken(msalInstance, account) {
-    const request = { ...apiRequest, account };
+    if (!account) {
+        throw new Error("Necesitas iniciar sesión.");
+    }
+
+    if (account.proveedor === "cognito") {
+        const usuario = await cognitoManager.getUser();
+
+        if (!usuario || usuario.profile.sub !== account.sub) {
+            throw new Error(
+                "La sesión cambió. Recarga la página e inicia sesión nuevamente."
+            );
+        }
+
+        return obtenerTokenCognito();
+    }
+
+    const request = {
+        ...apiRequest,
+        account,
+    };
+
     try {
-        const response = await msalInstance.acquireTokenSilent(request);
+        const response =
+            await msalInstance.acquireTokenSilent(request);
+
         return response.accessToken;
-    } catch {
-        await msalInstance.acquireTokenRedirect(request);
-        return null;
+    } catch (error) {
+        if (error instanceof InteractionRequiredAuthError) {
+            await msalInstance.acquireTokenRedirect(request);
+            return null;
+        }
+
+        throw error;
     }
 }
 
-export async function apiFetch(url, { msalInstance, account, ...options } = {}) {
-    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+export async function apiFetch(
+    url,
+    { msalInstance, account, ...options } = {}
+) {
+    if (!url) {
+        throw new Error("Falta configurar la URL del servicio.");
+    }
+
+    const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+    };
 
     if (account) {
         const token = await obtenerToken(msalInstance, account);
+
         if (!token) return null;
-        headers["Authorization"] = `Bearer ${token}`;
+
+        headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(url, { ...options, headers });
+    const respuesta = await fetch(url, {
+        ...options,
+        headers,
+    });
 
-    if (!res.ok) {
-        let mensaje = `${res.status} ${res.statusText}`;
+    if (!respuesta.ok) {
+        let mensaje =
+            `${respuesta.status} ${respuesta.statusText}`;
+
         try {
-            const cuerpo = await res.json();
-            if (cuerpo?.mensaje) mensaje = cuerpo.mensaje;
+            const cuerpo = await respuesta.json();
+
+            mensaje =
+                cuerpo.detail ||
+                cuerpo.mensaje ||
+                cuerpo.message ||
+                mensaje;
         } catch {
-            // mensaje generico
+            //
         }
-        throw new Error(mensaje);
+
+        const error = new Error(mensaje);
+        error.status = respuesta.status;
+        throw error;
     }
 
-    if (res.status === 204) return null;
-    return res.json();
+    if (respuesta.status === 204) {
+        return null;
+    }
+
+    return respuesta.json();
 }
 
 export const API = {

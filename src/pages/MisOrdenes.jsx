@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { useSesion } from "../features/auth/useSesion";
 import { Link } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { Boton } from "../components/Boton";
@@ -221,8 +221,11 @@ function TarjetaOrden({ orden, instance, account }) {
 }
 
 export function MisOrdenes() {
-    const { instance, accounts } = useMsal();
-    const isAuthenticated = useIsAuthenticated();
+    const {
+        instance,
+        accounts,
+        isAuthenticated,
+    } = useSesion();
     const account = accounts[0];
 
     const [ordenes, setOrdenes] = useState([]);

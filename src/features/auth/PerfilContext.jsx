@@ -1,13 +1,24 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { useMsal } from "@azure/msal-react";
-import { InteractionStatus } from "@azure/msal-browser";
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+
+import { useSesion } from "./useSesion";
 import { obtenerPerfil } from "./authApi";
 
 const PerfilContext = createContext(null);
 
 export function PerfilProvider({ children }) {
-    const { instance, accounts, inProgress } = useMsal();
-    const cuentaId = accounts[0]?.homeAccountId || "";
+    const {
+        instance,
+        cuenta,
+        cargandoSesion,
+        isAuthenticated,
+    } = useSesion();
+
+    const cuentaId = cuenta?.homeAccountId || "";
 
     const [resultado, setResultado] = useState({
         cuentaId: "",
@@ -16,22 +27,18 @@ export function PerfilProvider({ children }) {
     });
 
     useEffect(() => {
-        if (!cuentaId || inProgress !== InteractionStatus.None) {
+        if (!cuenta || cargandoSesion) {
             return;
         }
 
         let vigente = true;
 
-        const cuenta = instance.getAllAccounts().find(
-            (item) => item.homeAccountId === cuentaId
-        );
+        async function cargarPermisos() {
+            try {
+                const perfil = await obtenerPerfil(instance, cuenta);
 
-        if (!cuenta) return;
-
-        obtenerPerfil(instance, cuenta)
-            .then((perfil) => {
                 if (!perfil) {
-                    throw new Error("No se recibió el perfil del usuario.");
+                    throw new Error("No se recibió el perfil.");
                 }
 
                 if (vigente) {
@@ -41,8 +48,7 @@ export function PerfilProvider({ children }) {
                         error: null,
                     });
                 }
-            })
-            .catch(() => {
+            } catch (error) {
                 if (vigente) {
                     setResultado({
                         cuentaId,
@@ -52,24 +58,31 @@ export function PerfilProvider({ children }) {
                             "Recarga la página para intentar nuevamente.",
                     });
                 }
-            });
+            }
+        }
+
+        cargarPermisos();
 
         return () => {
             vigente = false;
         };
-    }, [instance, cuentaId, inProgress]);
+    }, [instance, cuenta, cuentaId, cargandoSesion]);
 
     const corresponde = resultado.cuentaId === cuentaId;
 
     const perfil =
-        cuentaId && corresponde ? resultado.perfil : null;
+        isAuthenticated && corresponde
+            ? resultado.perfil
+            : null;
 
     const error =
-        cuentaId && corresponde ? resultado.error : null;
+        isAuthenticated && corresponde
+            ? resultado.error
+            : null;
 
     const cargando =
-        inProgress !== InteractionStatus.None ||
-        Boolean(cuentaId && !corresponde);
+        cargandoSesion ||
+        Boolean(isAuthenticated && !corresponde);
 
     const roles = perfil?.roles || [];
 
@@ -81,7 +94,7 @@ export function PerfilProvider({ children }) {
             value={{
                 cargando,
                 error,
-                autenticado: Boolean(cuentaId),
+                autenticado: isAuthenticated,
                 esCliente,
                 esAdministrador,
             }}

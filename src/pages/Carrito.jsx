@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { useSesion } from "../features/auth/useSesion";
 import { Link, useNavigate } from "react-router-dom";
 import {
     obtenerMiCarrito,
@@ -14,8 +14,11 @@ import { loginRequest } from "../features/auth/AuthConfig";
 import { enviarComprobante } from "../features/ordenes/ordenesApi";
 
 export function Carrito() {
-    const { instance, accounts } = useMsal();
-    const isAuthenticated = useIsAuthenticated();
+    const {
+        instance,
+        accounts,
+        isAuthenticated,
+    } = useSesion();
     const navigate = useNavigate();
 
     const [items, setItems] = useState([]);

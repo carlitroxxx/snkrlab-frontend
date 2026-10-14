@@ -1,6 +1,6 @@
 import  { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { useSesion } from "../features/auth/useSesion";
 import { obtenerProducto } from "../features/productos/productosApi";
 import { agregarAlCarrito } from "../features/carrito/carritoApi";
 import { loginRequest } from "../features/auth/AuthConfig";
@@ -12,8 +12,11 @@ import { usePerfil } from "../features/auth/PerfilContext";
 
 export function DetalleProducto() {
     const { id } = useParams();
-    const { instance, accounts } = useMsal();
-    const isAuthenticated = useIsAuthenticated();
+    const {
+        instance,
+        accounts,
+        isAuthenticated,
+    } = useSesion();
     const {
         esCliente,
         cargando: cargandoPermisos,
