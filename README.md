@@ -1,14 +1,15 @@
 # snkrlab-frontend
 
-Frontend del sistema **SNKRLAB**: catálogo de productos, carrito de compras y checkout, con inicio de sesión mediante **Azure AD (Microsoft Entra ID)**.
+Frontend del sistema **SNKRLAB**: catálogo de productos, carrito de compras y checkout, con autenticación que evolucionó desde **Azure AD (Microsoft Entra ID)** hacia la incorporación de **Amazon Cognito**.
 
-> Este proyecto está construido en **React + Vite** (`@azure/msal-react`), no en Angular. La pauta de la evaluación pide explícitamente un componente Angular — dejarlo anotado acá para no perderlo de vista antes de la entrega.
+> El frontend sigue construido en **React + Vite**. El proyecto conserva dependencias MSAL y añadió componentes para Cognito.
 
 ## Herramientas
 
 - React + Vite
 - React Router
-- `@azure/msal-browser` / `@azure/msal-react` (autenticación con Azure AD, flujo MSAL)
+- `@azure/msal-browser` / `@azure/msal-react` (integración original Azure AD)
+- Componentes de Amazon Cognito (integración agregada en EV2)
 
 ## Estructura
 
@@ -49,9 +50,9 @@ Endpoints consumidos:
 - `${BASE_URL}/api/v1/productos` — catálogo (público, sin token)
 - `${BASE_URL}/api/v1/carrito` — carrito y checkout (requiere token)
 
-## Autenticación
+## Autenticación (implementación original y ampliaciones EV2)
 
-- Login: `msalInstance.loginRedirect` / scopes definidos en `loginRequest` (`AuthConfig.js`).
+- Flujo Azure AD original: `msalInstance.loginRedirect` / scopes definidos en `loginRequest` (`AuthConfig.js`).
 - Para llamar al backend, `httpClient.js` obtiene el token con `acquireTokenSilent` (con fallback a `acquireTokenRedirect`) y lo agrega como header `Authorization: Bearer <token>`.
 - Los endpoints de catálogo (`GET /productos`) se llaman sin token porque son públicos en `ms-productos`.
 
@@ -74,4 +75,32 @@ Corre por defecto en `http://localhost:5173` (los backends tienen ese origen hab
 
 ## Despliegue
 
+El entorno local puede levantarse con Docker Compose para los servicios backend; en AWS, el frontend y cada microservicio se despliegan por separado, con API Gateway como entrada.
+
 - Se despliega el frontend en un dominio distinto a `http://localhost:5173`, hay que agregar ese origen a `allowedOrigins` en el `SecurityConfig` de los 3 microservicios (ms-auth, ms-productos, ms-carrito), y volver a construir sus imágenes Docker.
+
+## Actualización EV2 — nuevas vistas y autenticación
+
+El frontend ha evolucionado respecto de EV1. Se mantienen React + Vite y el código original de MSAL, pero se incorporaron módulos de sesión para **Amazon Cognito** (`CognitoConfig.js`, `SesionCognito.jsx`) y contexto de perfil.
+
+### Rutas implementadas
+
+| Ruta | Acceso | Pantalla |
+|---|---|---|
+| `/` | Público | Catálogo |
+| `/producto/:id` | Público | Detalle de producto |
+| `/carrito` | Cliente | Carrito y checkout |
+| `/ordenes` | Cliente | Historial de órdenes |
+| `/reportes` | Administrador | Panel de reportes |
+
+### Archivos agregados o relevantes
+
+- `src/features/auth/CognitoConfig.js`, `SesionCognito.jsx`, `PerfilContext.jsx`, `RutaProtegida.jsx` — sesión y rutas protegidas.
+- `src/features/ordenes/ordenesApi.js` y `src/pages/MisOrdenes.jsx` — consultas de órdenes.
+- `src/features/reportes/reportesApi.js`, `exportacionesApi.js`, `ExportarReportes.jsx` y `src/pages/Reportes.jsx` — métricas y exportación.
+
+### Configuración y despliegue
+
+La aplicación usa archivos `.env` y `.env.production`; configurar los valores `VITE_` según el entorno, sin publicar credenciales privadas. La ejecución local sigue siendo `npm install` y `npm run dev`. En AWS el frontend se despliega por separado y consume los endpoints de API Gateway.
+
+**Pendiente:** autorización Lambda en API Gateway. **EV3 todavía no implementada:** ms-pago, Kafka y recomendaciones.
