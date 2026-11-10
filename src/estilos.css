@@ -186,6 +186,30 @@ img {
     letter-spacing: 0.05em;
 }
 
+/* Variante compacta: conserva las columnas responsive del catalogo. */
+.catalogoGrid--compacto .productoCard {
+    width: 78%;
+    min-width: 0;
+    justify-self: start;
+}
+
+.catalogoGrid--compacto .productoCardImagen img {
+    padding: 0.75rem;
+}
+
+.catalogoGrid--compacto .productoCardInfo {
+    padding: 0.7rem 0.75rem 0.85rem;
+}
+
+.catalogoGrid--compacto .productoCardNombre {
+    overflow-wrap: anywhere;
+}
+
+.catalogoGrid--compacto .productoCardPie {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+}
+
 /* Precio y etiqueta */
 .precio {
     font-weight: 700;

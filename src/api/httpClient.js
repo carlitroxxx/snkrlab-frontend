@@ -97,6 +97,7 @@ export async function apiFetch(
 }
 
 export const API = {
+    recomendaciones: import.meta.env.VITE_API_RECOMENDACIONES_URL,
     auth: import.meta.env.VITE_API_AUTH_URL,
     productos: import.meta.env.VITE_API_PRODUCTOS_URL,
     carrito: import.meta.env.VITE_API_CARRITO_URL,
