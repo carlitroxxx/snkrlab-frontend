@@ -34,10 +34,22 @@ export function vaciarCarrito(msalInstance, account) {
     return apiFetch(API.carrito, { msalInstance, account, method: "DELETE" });
 }
 
-export function confirmarCompra(msalInstance, account) {
-    return apiFetch(`${API.carrito}/checkout`, {
-        msalInstance,
-        account,
-        method: "POST",
+export function iniciarCheckout(msalInstance, account, checkoutId) {
+    return apiFetch(API.carrito + "/checkout/pendiente", {
+        msalInstance, account, method: "POST",
+        body: JSON.stringify({ checkoutId }),
+    });
+}
+
+export function pagarCheckout(msalInstance, account, checkoutId, referenciaPago) {
+    return apiFetch(API.carrito + "/checkouts/" + checkoutId + "/pago", {
+        msalInstance, account, method: "POST",
+        body: JSON.stringify({ referenciaPago }),
+    });
+}
+
+export function confirmarCheckout(msalInstance, account, checkoutId) {
+    return apiFetch(API.carrito + "/checkouts/" + checkoutId + "/confirmacion", {
+        msalInstance, account, method: "POST",
     });
 }

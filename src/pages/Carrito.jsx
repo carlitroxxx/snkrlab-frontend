@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSesion } from "../features/auth/useSesion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
     obtenerMiCarrito,
     actualizarCantidad,
     eliminarItem,
-    confirmarCompra,
+    iniciarCheckout, pagarCheckout, confirmarCheckout,
 } from "../features/carrito/carritoApi";
 import { Layout } from "../components/Layout";
 import { Precio } from "../components/Precio";
@@ -14,12 +14,27 @@ import { loginRequest } from "../features/auth/AuthConfig";
 import { enviarComprobante } from "../features/ordenes/ordenesApi";
 
 export function Carrito() {
+    const { cuenta, cargandoSesion } = useSesion();
+    if (cargandoSesion) return <Layout><p>Cargando sesión...</p></Layout>;
+    return <CarritoUsuario key={cuenta?.homeAccountId || "visitante"} />;
+}
+
+function CarritoUsuario() {
     const {
         instance,
         accounts,
         isAuthenticated,
     } = useSesion();
-    const navigate = useNavigate();
+    const claveCheckout = "snkrlab:checkout:" + accounts[0]?.homeAccountId;
+    const ocupado = useRef(false);
+    const vigente = useRef(true);
+    useEffect(() => {
+        vigente.current = true;
+        return () => { vigente.current = false; };
+    }, []);
+    const [operacion, setOperacion] = useState(null);
+    const [referencia, setReferencia] = useState("SIM_APROBADA_01");
+    const [persistenciaLista, setPersistenciaLista] = useState(false);
 
     const [items, setItems] = useState([]);
     const [cargando, setCargando] = useState(true);
@@ -54,29 +69,122 @@ export function Carrito() {
     }, [isAuthenticated]);
 
     const manejarCambioCantidad = async (itemId, cantidad) => {
-        if (cantidad < 1) return;
+        if (cantidad < 1 || ocupado.current || operacion) return;
         await actualizarCantidad(instance, accounts[0], itemId, cantidad);
         cargarCarrito();
     };
 
     const manejarEliminar = async (itemId) => {
+        if (ocupado.current || operacion) return;
         await eliminarItem(instance, accounts[0], itemId);
         cargarCarrito();
     };
 
-    const manejarCheckout = async () => {
-        setConfirmando(true);
+    useEffect(() => {
+        if (!isAuthenticated) return;
         try {
-            const resultado = await confirmarCompra(instance, accounts[0]);
-            setResultadoCompra(resultado);
-            setItems([]);
+            const guardada = localStorage.getItem(claveCheckout);
+            if (guardada) {
+                const datos = JSON.parse(guardada);
+                if (!/^[0-9a-f-]{36}$/i.test(datos.checkoutId || "")
+                    || !["SIM_APROBADA_01", "SIM_RECHAZADA_01"].includes(datos.referenciaPago))
+                    throw new Error("La operación guardada no es válida.");
+                setOperacion(datos);
+                setReferencia(datos.referenciaPago);
+            }
+            setPersistenciaLista(true);
+        } catch {
+            setError("No se pudo recuperar el checkout guardado. No se iniciará otra compra.");
+        }
+    }, [claveCheckout, isAuthenticated]);
+
+    const guardarOperacion = (datos) => {
+        localStorage.setItem(claveCheckout, JSON.stringify(datos));
+        if (vigente.current) setOperacion(datos);
+    };
+
+    const manejarCheckout = async () => {
+        if (ocupado.current || !persistenciaLista || !accounts[0]) return;
+        ocupado.current = true;
+        setConfirmando(true);
+        setError(null);
+        let actual = operacion;
+        try {
+            // Persistir antes de enviar: un fallo de red nunca genera otro UUID.
+            if (!actual) {
+                actual = {
+                    checkoutId: crypto.randomUUID(),
+                    referenciaPago: referencia,
+                    estado: "INICIADO",
+                };
+                guardarOperacion(actual);
+            }
+            const aceptar = (respuesta) => {
+                if (!respuesta || respuesta.checkoutId !== actual.checkoutId
+                    || !["INICIADO", "ORDEN_PENDIENTE", "PAGO_INCIERTO",
+                        "PAGO_APROBADO", "RECHAZADO", "CONFIRMADO"].includes(respuesta.estado))
+                    throw new Error("No se recibió un estado válido. Reintenta la misma operación.");
+                actual = { ...actual, estado: respuesta.estado };
+                guardarOperacion(actual);
+                return respuesta;
+            };
+            let checkout;
+            if (!["PAGO_APROBADO", "CONFIRMADO"].includes(actual.estado)) {
+                checkout = aceptar(await iniciarCheckout(instance, accounts[0], actual.checkoutId));
+                if (!vigente.current) return;
+                if (["ORDEN_PENDIENTE", "PAGO_INCIERTO"].includes(checkout.estado)) {
+                    actual = { ...actual, estado: "PAGO_INCIERTO" };
+                    guardarOperacion(actual);
+                    checkout = aceptar(await pagarCheckout(instance, accounts[0],
+                        actual.checkoutId, actual.referenciaPago));
+                }
+                if (!vigente.current) return;
+                if (checkout.estado === "RECHAZADO") {
+                    setError(checkout.resultadoPago === "BLOQUEADO_FRAUDE"
+                        ? "Pago bloqueado por el control antifraude. Tu carrito se conserva."
+                        : "Pago rechazado. Tu carrito se conserva.");
+                    return;
+                }
+            }
+            if (["PAGO_APROBADO", "CONFIRMADO"].includes(actual.estado)) {
+                // También recupera el comprobante tras recargar. Nunca repite el pago.
+                checkout = aceptar(await confirmarCheckout(instance, accounts[0], actual.checkoutId));
+            }
+            if (!vigente.current) return;
+            if (checkout?.estado !== "CONFIRMADO")
+                throw new Error("Compra pendiente. Reintenta la misma operación.");
+            const carrito = await obtenerMiCarrito(instance, accounts[0]);
+            if (!Array.isArray(carrito))
+                throw new Error("Compra confirmada; falta actualizar el carrito. Reintenta.");
+            if (!vigente.current) return;
+            setItems(carrito);
+            localStorage.removeItem(claveCheckout);
+            setOperacion(null);
+            setResultadoCompra({
+                ordenId: checkout.ordenId,
+                mensaje: "Compra confirmada con pago simulado aprobado.",
+                items: checkout.articulos,
+                cantidadItems: checkout.articulos.length,
+                total: checkout.importePago,
+            });
         } catch (err) {
-            setError("Error al confirmar la compra: " + err.message);
+            if (vigente.current) setError(err.message + " La operación se conserva para reintentar.");
         } finally {
-            setConfirmando(false);
+            ocupado.current = false;
+            if (vigente.current) setConfirmando(false);
         }
     };
 
+    const nuevaCompraTrasRechazo = () => {
+        if (ocupado.current || operacion?.estado !== "RECHAZADO") return;
+        try {
+            localStorage.removeItem(claveCheckout);
+            setOperacion(null);
+            setError(null);
+        } catch {
+            setError("No se pudo liberar el intento rechazado.");
+        }
+    };
     const manejarEnviarComprobante = async (event) => {
         event.preventDefault();
 
@@ -219,6 +327,32 @@ export function Carrito() {
 
             {error && <p className="carritoError">{error}</p>}
 
+            {(items.length > 0 || operacion) && (
+                <div className="carritoResumen">
+                    <label htmlFor="pagoSimulado">Pago simulado</label>
+                    <select id="pagoSimulado" value={referencia}
+                        disabled={confirmando || Boolean(operacion) || !persistenciaLista}
+                        onChange={(event) => setReferencia(event.target.value)}>
+                        <option value="SIM_APROBADA_01">Simular pago aprobado</option>
+                        <option value="SIM_RECHAZADA_01">Simular pago rechazado</option>
+                    </select>
+                    {operacion?.estado === "RECHAZADO" ? (
+                        <div>
+                            <p role="status">Pago rechazado o bloqueado. El carrito se conserva.</p>
+                            <Boton disabled={confirmando} onClick={nuevaCompraTrasRechazo}>
+                                Preparar una nueva compra
+                            </Boton>
+                        </div>
+                    ) : (
+                        <Boton onClick={manejarCheckout} disabled={confirmando || !persistenciaLista}>
+                            {confirmando ? "Procesando..." :
+                                ["PAGO_APROBADO", "CONFIRMADO"].includes(operacion?.estado)
+                                    ? "Reintentar confirmación"
+                                    : operacion ? "Retomar compra" : "Confirmar compra"}
+                        </Boton>
+                    )}
+                </div>
+            )}
             {items.length === 0 ? (
                 <p>Tu carrito está vacío. <Link to="/">Ver catálogo</Link></p>
             ) : (
@@ -233,12 +367,12 @@ export function Carrito() {
                                 </div>
 
                                 <div className="carritoItemCantidad">
-                                    <button onClick={() => manejarCambioCantidad(item.id, item.cantidad - 1)}>-</button>
+                                    <button disabled={confirmando || Boolean(operacion)} onClick={() => manejarCambioCantidad(item.id, item.cantidad - 1)}>-</button>
                                     <span>{item.cantidad}</span>
-                                    <button onClick={() => manejarCambioCantidad(item.id, item.cantidad + 1)}>+</button>
+                                    <button disabled={confirmando || Boolean(operacion)} onClick={() => manejarCambioCantidad(item.id, item.cantidad + 1)}>+</button>
                                 </div>
 
-                                <Boton variante="linea" onClick={() => manejarEliminar(item.id)}>
+                                <Boton disabled={confirmando || Boolean(operacion)} variante="linea" onClick={() => manejarEliminar(item.id)}>
                                     Eliminar
                                 </Boton>
                             </div>
@@ -249,10 +383,6 @@ export function Carrito() {
                         <span>Total</span>
                         <Precio valor={total} />
                     </div>
-
-                    <Boton onClick={manejarCheckout} disabled={confirmando}>
-                        {confirmando ? "Confirmando..." : "Confirmar compra"}
-                    </Boton>
                 </>
             )}
         </Layout>
