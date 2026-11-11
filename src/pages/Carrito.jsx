@@ -19,6 +19,7 @@ export function Carrito() {
     return <CarritoUsuario key={cuenta?.homeAccountId || "visitante"} />;
 }
 
+const TARJETAS = ["SIM_TARJETA_01", "SIM_TARJETA_02", "SIM_TARJETA_03"];
 function CarritoUsuario() {
     const {
         instance,
@@ -34,6 +35,8 @@ function CarritoUsuario() {
     }, []);
     const [operacion, setOperacion] = useState(null);
     const [referencia, setReferencia] = useState("SIM_APROBADA_01");
+    const [tarjeta, setTarjeta] = useState("SIM_TARJETA_01");
+    const [puedeElegirTarjeta, setPuedeElegirTarjeta] = useState(false);
     const [persistenciaLista, setPersistenciaLista] = useState(false);
 
     const [items, setItems] = useState([]);
@@ -89,6 +92,9 @@ function CarritoUsuario() {
                 if (!/^[0-9a-f-]{36}$/i.test(datos.checkoutId || "")
                     || !["SIM_APROBADA_01", "SIM_RECHAZADA_01"].includes(datos.referenciaPago))
                     throw new Error("La operación guardada no es válida.");
+                if (datos.tarjetaId != null && !TARJETAS.includes(datos.tarjetaId))
+                    throw new Error("Tarjeta guardada no válida.");
+                setTarjeta(datos.tarjetaId ?? "");
                 setOperacion(datos);
                 setReferencia(datos.referenciaPago);
             }
@@ -115,6 +121,7 @@ function CarritoUsuario() {
                 actual = {
                     checkoutId: crypto.randomUUID(),
                     referenciaPago: referencia,
+                    tarjetaId: tarjeta,
                     estado: "INICIADO",
                 };
                 guardarOperacion(actual);
@@ -124,7 +131,11 @@ function CarritoUsuario() {
                     || !["INICIADO", "ORDEN_PENDIENTE", "PAGO_INCIERTO",
                         "PAGO_APROBADO", "RECHAZADO", "CONFIRMADO"].includes(respuesta.estado))
                     throw new Error("No se recibió un estado válido. Reintenta la misma operación.");
-                actual = { ...actual, estado: respuesta.estado };
+                if (respuesta.tarjetaId != null && (!TARJETAS.includes(respuesta.tarjetaId)
+                    || (actual.tarjetaId != null && actual.tarjetaId !== respuesta.tarjetaId)))
+                    throw new Error("La tarjeta del checkout no coincide. Revisa la operación.");
+                actual = { ...actual, estado: respuesta.estado,
+                    tarjetaId: respuesta.tarjetaId ?? actual.tarjetaId };
                 guardarOperacion(actual);
                 return respuesta;
             };
@@ -133,10 +144,15 @@ function CarritoUsuario() {
                 checkout = aceptar(await iniciarCheckout(instance, accounts[0], actual.checkoutId));
                 if (!vigente.current) return;
                 if (["ORDEN_PENDIENTE", "PAGO_INCIERTO"].includes(checkout.estado)) {
+                    if (!actual.tarjetaId && !checkout.intentoId) {
+                        setPuedeElegirTarjeta(true);
+                        throw new Error("Esta compra anterior aún no tiene intento de pago. Selecciona una tarjeta de prueba para continuar con la misma compra.");
+                    }
+                    setPuedeElegirTarjeta(false);
                     actual = { ...actual, estado: "PAGO_INCIERTO" };
                     guardarOperacion(actual);
                     checkout = aceptar(await pagarCheckout(instance, accounts[0],
-                        actual.checkoutId, actual.referenciaPago));
+                        actual.checkoutId, actual.referenciaPago, actual.tarjetaId));
                 }
                 if (!vigente.current) return;
                 if (checkout.estado === "RECHAZADO") {
@@ -180,11 +196,26 @@ function CarritoUsuario() {
         try {
             localStorage.removeItem(claveCheckout);
             setOperacion(null);
+            setTarjeta("SIM_TARJETA_01");
+            setPuedeElegirTarjeta(false);
             setError(null);
         } catch {
             setError("No se pudo liberar el intento rechazado.");
         }
     };
+    const seleccionarTarjeta = (valor) => {
+        if (ocupado.current || !TARJETAS.includes(valor)) return;
+        if (operacion && !puedeElegirTarjeta) return;
+        try {
+            if (operacion) guardarOperacion({ ...operacion, tarjetaId: valor });
+            setTarjeta(valor);
+            setPuedeElegirTarjeta(false);
+            setError(null);
+        } catch {
+            setError("No se pudo guardar la tarjeta. No se enviará un pago nuevo.");
+        }
+    };
+
     const manejarEnviarComprobante = async (event) => {
         event.preventDefault();
 
@@ -329,6 +360,25 @@ function CarritoUsuario() {
 
             {(items.length > 0 || operacion) && (
                 <div className="carritoResumen">
+                    <label htmlFor="tarjetaSimulada">Tarjeta simulada</label>
+                    <select id="tarjetaSimulada" value={tarjeta}
+                        disabled={confirmando || !persistenciaLista || (Boolean(operacion) && !puedeElegirTarjeta)}
+                        onChange={(event) => seleccionarTarjeta(event.target.value)}>
+                        <option value="" disabled>Sin tarjeta registrada</option>
+                        {TARJETAS.map((id, index) => (
+                            <option key={id} value={id}>Tarjeta de prueba {index + 1}</option>
+                        ))}
+                    </select>
+                    {operacion && !operacion.tarjetaId && (
+                        <div role="status">
+                            <p>Compra anterior sin tarjeta registrada. Usa Retomar compra para comprobar su estado.
+                                No se asignará una tarjeta a un intento existente.</p>
+                            <p>Si no puede recuperarse, revisa Mis órdenes y solicita revisar el pago
+                                indicando el checkout {operacion.checkoutId}. No inicies otra compra
+                                mientras el resultado sea incierto.</p>
+                            <Link to="/ordenes">Revisar mis órdenes</Link>
+                        </div>
+                    )}
                     <label htmlFor="pagoSimulado">Pago simulado</label>
                     <select id="pagoSimulado" value={referencia}
                         disabled={confirmando || Boolean(operacion) || !persistenciaLista}

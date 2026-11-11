@@ -41,10 +41,10 @@ export function iniciarCheckout(msalInstance, account, checkoutId) {
     });
 }
 
-export function pagarCheckout(msalInstance, account, checkoutId, referenciaPago) {
+export function pagarCheckout(msalInstance, account, checkoutId, referenciaPago, tarjetaId) {
     return apiFetch(API.carrito + "/checkouts/" + checkoutId + "/pago", {
         msalInstance, account, method: "POST",
-        body: JSON.stringify({ referenciaPago }),
+        body: JSON.stringify({ referenciaPago, tarjetaId }),
     });
 }
 
