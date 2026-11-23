@@ -4,6 +4,6 @@ export function listarProductos() {
     return apiFetch(API.productos);
 }
 
-export function obtenerProducto(id) {
-    return apiFetch(`${API.productos}/${id}`);
+export function obtenerProducto(id, msalInstance, account) {
+    return apiFetch(`${API.productos}/${id}`, { msalInstance, account });
 }

@@ -1,4 +1,4 @@
-import  { useEffect, useState } from "react";
+import  { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSesion } from "../features/auth/useSesion";
 import { obtenerProducto } from "../features/productos/productosApi";
@@ -17,6 +17,8 @@ export function DetalleProducto() {
         instance,
         accounts,
         isAuthenticated,
+        cuenta,
+        cargandoSesion,
     } = useSesion();
     const {
         esCliente,
@@ -28,14 +30,29 @@ export function DetalleProducto() {
     const [error, setError] = useState(null);
     const [agregando, setAgregando] = useState(false);
     const [mensaje, setMensaje] = useState(null);
+    const consultaDetalle = useRef(null);
 
     useEffect(() => {
+        if (cargandoSesion) return;
+        let activo = true;
         setCargando(true);
-        obtenerProducto(id)
-            .then(setProducto)
-            .catch((err) => setError(err.message))
-            .finally(() => setCargando(false));
-    }, [id]);
+        setError(null);
+        const identidad = cuenta?.homeAccountId || null;
+        // Reutilizar la solicitud si React repite el efecto para la misma visita.
+        if (!consultaDetalle.current || consultaDetalle.current.id !== id
+                || consultaDetalle.current.identidad !== identidad) {
+            consultaDetalle.current = {
+                id,
+                identidad,
+                promesa: obtenerProducto(id, instance, cuenta),
+            };
+        }
+        consultaDetalle.current.promesa
+            .then((valor) => { if (activo) setProducto(valor); })
+            .catch((err) => { if (activo) setError(err.message); })
+            .finally(() => { if (activo) setCargando(false); });
+        return () => { activo = false; };
+    }, [id, instance, cuenta, cargandoSesion]);
 
     const manejarAgregar = async () => {
         if (!isAuthenticated) {
