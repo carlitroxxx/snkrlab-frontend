@@ -55,8 +55,6 @@ function Dashboard({ instance, cuenta }) {
         <header><p className="analiticaEtiqueta">ADMINISTRACIÓN · EN TIEMPO REAL</p><h1>Analítica de navegación</h1>
             <p role="status"><span className={estado === "Conectada" ? "analiticaActivo" : ""}>●</span> {estado}</p></header>
         <p>Sesión del dashboard desde {fecha(inicio)}. Último evento recibido: {fecha(metricas.ultima)}.</p>
-        <p>Solo eventos recibidos durante esta sesión; sin historial ni recuperación de eventos perdidos.
-            Salir de esta página o recargar inicia una nueva medición. Las visitas anónimas no llegan al stream.</p>
         <div className="analiticaMetricas">
             <article><h2>Visitas a productos</h2><strong>{metricas.visitas}</strong><p>Eventos de visualización recibidos</p></article>
             <article><h2>Agregados al carrito</h2><strong>{metricas.agregados}</strong><p>Eventos de agregado, no unidades ni ventas</p></article>
