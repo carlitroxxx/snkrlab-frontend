@@ -1247,6 +1247,13 @@ img {
 
 /* Fase 20: navegación y tarjetas uniformes, sin modificar los flujos. */
 .navbarAdmin { display: flex; flex-wrap: wrap; gap: .25rem; min-width: 0; }
+.productosAdminAcciones { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0; }
+.productosAdminFormulario { background: var(--bg-tarjeta); border: 1px solid var(--borde); border-radius: 8px; padding: 1.5rem; margin: 2rem 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 1rem; }
+.productosAdminFormulario h2, .productosAdminFormulario .productosAdminAcciones { grid-column: 1 / -1; }
+.productosAdminFormulario label { display: grid; gap: .5rem; text-transform: capitalize; }
+.productosAdminFormulario input { width: 100%; min-width: 0; background: #121212; color: var(--texto); border: 1px solid var(--borde); border-radius: 4px; padding: .7rem; font: inherit; }
+.productosAdminFormulario input:focus-visible { outline: 2px solid var(--naranjo); }
+.productosAdmin td .boton { margin: .25rem; }
 .navbarMarca { flex-shrink: 0; display: inline-flex; }
 .navbarOrdenes, .navbarCarrito {
     color: var(--naranjo);

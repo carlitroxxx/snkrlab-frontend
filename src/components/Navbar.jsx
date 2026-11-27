@@ -34,6 +34,7 @@ export function Navbar() {
                     Reportes
                 </Link>
                 <Link to="/analitica" className="navbarOrdenes">Analítica en vivo</Link>
+                <Link to="/admin/productos" className="navbarOrdenes">Productos</Link>
                 </nav>
             )}
 

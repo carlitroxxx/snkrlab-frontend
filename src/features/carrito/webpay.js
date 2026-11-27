@@ -35,6 +35,7 @@ export function enviarFormularioWebpay(url, token) {
 }
 
 export function mensajePago(checkout) {
+    if (checkout.resultadoPago === "PRODUCTO_INACTIVO") return "Hay productos que ya no están disponibles. Retíralos del carrito para continuar.";
     if (checkout.estado === "CONFIRMADO") return "Compra confirmada.";
     if (checkout.estado === "PAGO_APROBADO") return "Pago aprobado. Falta confirmar la compra; retoma esta operación.";
     if (checkout.resultadoPago === "ANULADO") return "Pago anulado. Tu carrito se conserva.";
@@ -59,7 +60,7 @@ export async function recuperarCompraConfirmada(checkout, cargarCarrito, storage
 export async function liberarRechazado(actual, consultar, storage, clave) {
     const confirmado = await consultar();
     if (confirmado?.checkoutId !== actual.checkoutId || confirmado.estado !== "RECHAZADO" ||
-        !["RECHAZADO", "ANULADO", "BLOQUEADO_FRAUDE"].includes(confirmado.resultadoPago))
+        !["RECHAZADO", "ANULADO", "BLOQUEADO_FRAUDE", "PRODUCTO_INACTIVO"].includes(confirmado.resultadoPago))
         throw new Error("La compra anterior no tiene un rechazo o anulación definitivo.");
     if (leerOperacion(storage.getItem(clave))?.checkoutId !== actual.checkoutId)
         throw new Error("La compra activa cambió. Recupera el carrito.");
