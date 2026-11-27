@@ -4,6 +4,7 @@ import { DetalleProducto } from "./pages/DetalleProducto";
 import { Carrito } from "./pages/Carrito";
 import { MisOrdenes } from "./pages/MisOrdenes.jsx";
 import { Reportes } from "./pages/Reportes";
+import { Analitica } from "./pages/Analitica";
 import { PerfilProvider } from "./features/auth/PerfilContext";
 import { RutaProtegida } from "./features/auth/RutaProtegida";
 
@@ -28,6 +29,7 @@ function App() {
 
                 <Route element={<RutaProtegida rol="Administrador" />}>
                     <Route path="/reportes" element={<Reportes />} />
+                    <Route path="/analitica" element={<Analitica />} />
                 </Route>
             </Routes>
         </PerfilProvider>

@@ -59,6 +59,9 @@ export function Navbar() {
             )}
 
             <AccesoUsuario />
+            {permisosListos && esAdministrador && (
+                <Link to="/analitica" className="navbarOrdenes">Analítica en vivo</Link>
+            )}
         </header>
     );
 }
