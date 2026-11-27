@@ -14,7 +14,7 @@ export function Navbar() {
 
     return (
         <header className="navbar">
-            <Link to="/" className="navbarMarca">
+            <Link to="/" relative="route" className="navbarMarca" aria-label="Ir al catálogo">
                 <img
                     src={`${import.meta.env.BASE_URL}snkrlab-logo.jpg`}
                     alt="SNKRLAB"
@@ -29,9 +29,12 @@ export function Navbar() {
             )}
 
             {permisosListos && esAdministrador && (
+                <nav className="navbarAdmin" aria-label="Administración">
                 <Link to="/reportes" className="navbarOrdenes">
                     Reportes
                 </Link>
+                <Link to="/analitica" className="navbarOrdenes">Analítica en vivo</Link>
+                </nav>
             )}
 
             {permisosListos && esCliente && (
@@ -59,9 +62,6 @@ export function Navbar() {
             )}
 
             <AccesoUsuario />
-            {permisosListos && esAdministrador && (
-                <Link to="/analitica" className="navbarOrdenes">Analítica en vivo</Link>
-            )}
         </header>
     );
 }

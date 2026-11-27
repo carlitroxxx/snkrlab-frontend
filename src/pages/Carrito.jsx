@@ -11,8 +11,9 @@ import { Layout } from "../components/Layout";
 import { Precio } from "../components/Precio";
 import { Boton } from "../components/Boton";
 import { loginRequest } from "../features/auth/AuthConfig";
-import { leerOperacion, enviarFormularioWebpay, validarFormularioWebpay, mensajePago, confirmarSiAprobado, recuperarCompraConfirmada, liberarRechazado, seleccionSimulada, advertirTarjetaPendiente } from "../features/carrito/webpay";
+import { leerOperacion, enviarFormularioWebpay, validarFormularioWebpay, mensajePago, confirmarSiAprobado, recuperarCompraConfirmada, liberarRechazado, seleccionSimulada } from "../features/carrito/webpay";
 import { enviarComprobante } from "../features/ordenes/ordenesApi";
+import { ImagenCatalogo, useImagenesCatalogo } from "../features/productos/ImagenCatalogo";
 
 export function Carrito({ resultadoWebpay = false }) {
     const { cuenta, cargandoSesion } = useSesion();
@@ -22,6 +23,7 @@ export function Carrito({ resultadoWebpay = false }) {
 
 const TARJETAS = ["SIM_TARJETA_01", "SIM_TARJETA_02", "SIM_TARJETA_03"];
 function CarritoUsuario({ resultadoWebpay }) {
+    const imagenes = useImagenesCatalogo();
     const navigate = useNavigate();
     const {
         instance,
@@ -338,6 +340,7 @@ function CarritoUsuario({ resultadoWebpay }) {
                     <div className="checkoutDetalleLista">
                         {resultadoCompra.items?.map((item, index) => (
                             <div key={index} className="checkoutDetalleItem">
+                                <ImagenCatalogo imagen={imagenes.get(String(item.productoId))} nombre={item.nombreProducto} />
                                 <div className="checkoutDetalleNombre">{item.nombreProducto}</div>
                                 <div className="checkoutDetalleFila">
                                     <span>Cantidad: {item.cantidad}</span>
@@ -414,7 +417,12 @@ function CarritoUsuario({ resultadoWebpay }) {
         <Layout>
             <h2>Carrito</h2>
 
-            {error && <p className="carritoError">{error}</p>}
+            {error && !(operacion && operacion.estado !== "RECHAZADO" && error === mensajePago(operacion)) && <p className="carritoError" role="alert">{error}</p>}
+            {operacion && operacion.estado !== "RECHAZADO" && (!error || error === mensajePago(operacion)) && (
+                <p className="carritoAvisoPendiente" role="status">
+                    Tienes un pago pendiente. Retoma la compra para consultar su estado.
+                </p>
+            )}
 
             {(items.length > 0 || operacion) && (
                 <div className="carritoResumen carritoPago">
@@ -441,16 +449,6 @@ function CarritoUsuario({ resultadoWebpay }) {
                             <option key={id} value={id}>{["0000 0000 0000 0001 - 12/29 - 123", "0000 0000 0000 0002 - 12/29 - 456", "0000 0000 0000 0003 - 12/29 - 789"][index]}</option>
                         ))}
                     </select>
-                    {advertirTarjetaPendiente(operacion) && (
-                        <div role="status">
-                            <p>Compra anterior sin tarjeta registrada. Usa Retomar compra para comprobar su estado.
-                                No se asignará una tarjeta a un intento existente.</p>
-                            <p>Si no puede recuperarse, revisa Mis órdenes y solicita revisar el pago
-                                indicando el checkout {operacion.checkoutId}. No inicies otra compra
-                                mientras el resultado sea incierto.</p>
-                            <Link to="/ordenes">Revisar mis órdenes</Link>
-                        </div>
-                    )}
                     <label htmlFor="pagoSimulado">Resultado simulado</label>
                     <select id="pagoSimulado" value={!operacion || operacion.estado === "RECHAZADO" ? seleccionSimulada(tarjeta, referencia).referencia : referencia}
                         disabled={confirmando || (Boolean(operacion) && operacion.estado !== "RECHAZADO") || !persistenciaLista}
@@ -464,7 +462,7 @@ function CarritoUsuario({ resultadoWebpay }) {
                     )}
                     {confirmando ? <Boton disabled>Procesando...</Boton> : operacion?.estado === "RECHAZADO" ? (
                         <div>
-                            <p role="status">{mensajePago(operacion)}</p>
+                            {error !== mensajePago(operacion) && <p role="status">{mensajePago(operacion)}</p>}
                             <Boton disabled={confirmando} onClick={() => manejarCheckout(true)}>
                                 Confirmar compra
                             </Boton>
@@ -486,6 +484,7 @@ function CarritoUsuario({ resultadoWebpay }) {
                     <div className="carritoLista">
                         {items.map((item) => (
                             <div key={item.id} className="carritoItem">
+                                <ImagenCatalogo imagen={imagenes.get(String(item.productoId))} nombre={item.nombreProducto} />
                                 <div className="carritoItemInfo">
                                     <span className="carritoItemId">ID: {item.productoId}</span>
                                     <span className="carritoItemNombre">{item.nombreProducto}</span>

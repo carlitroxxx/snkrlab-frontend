@@ -1244,3 +1244,78 @@ img {
 .analiticaMetricas strong { font-size: 2.6rem; color: #ff7a00; }
 .analiticaMetricas p { color: #bbb; }
 .analitica li { margin-bottom: 8px; }
+
+/* Fase 20: navegación y tarjetas uniformes, sin modificar los flujos. */
+.navbarAdmin { display: flex; flex-wrap: wrap; gap: .25rem; min-width: 0; }
+.navbarMarca { flex-shrink: 0; display: inline-flex; }
+.navbarOrdenes, .navbarCarrito {
+    color: var(--naranjo);
+    font-family: var(--fuente-titulo);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.catalogoGrid:not(.catalogoGrid--compacto) .productoCardImagen {
+    height: 240px;
+    min-height: 240px;
+    flex: 0 0 240px;
+    aspect-ratio: auto;
+}
+.catalogoGrid:not(.catalogoGrid--compacto) .productoCardImagen img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.catalogoGrid:not(.catalogoGrid--compacto) .productoCardPie {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+}
+.carritoAvisoPendiente {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-left: 3px solid var(--naranjo);
+    background: var(--bg-tarjeta);
+    line-height: 1.6;
+}
+.navbarAcceso { max-width: 100%; }
+.sesionUsuario { min-width: 0; flex-wrap: wrap; }
+.sesionUsuarioNombre { overflow-wrap: anywhere; }
+.catalogoGrid { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); align-items: stretch; }
+.productoCard { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+.productoCardInfo { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.productoCardMarca { display: block; line-height: 1.4; min-height: 1.4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.productoCardNombre { line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.productoCardPie { margin-top: auto; gap: .5rem; flex-wrap: wrap; }
+.catalogoGrid--compacto { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: 3rem; }
+.catalogoGrid--compacto .productoCard { width: 100%; display: grid; grid-template-columns: 32% minmax(0, 1fr); }
+.catalogoGrid--compacto .productoCardImagen { aspect-ratio: auto; min-height: 130px; }
+.catalogoGrid--compacto .productoCardImagen img { position: absolute; inset: 0; padding: .35rem; object-fit: contain; }
+.catalogoGrid--compacto .productoCardInfo { padding: .65rem; }
+.catalogoGrid--compacto .productoCardNombre { font-size: .85rem; }
+.catalogoGrid--compacto .productoCardPie { flex-direction: column; align-items: flex-start; }
+.catalogoGrid--compacto .etiqueta { font-size: .6rem; padding: .15rem; right: .1rem; left: .1rem; text-align: center; }
+.compraImagen { width: 90px; height: 90px; flex-shrink: 0; object-fit: contain; padding: .4rem; background: #fff; border-radius: 6px; }
+.compraImagenVacia { display: inline-flex; align-items: center; justify-content: center; color: #666; background: #191919; font-size: .75rem; }
+.carritoItem { gap: 1rem; flex-wrap: wrap; }
+.carritoItemInfo { flex: 1; min-width: 140px; overflow-wrap: anywhere; }
+.checkoutDetalleItem { display: flow-root; padding: 1rem 0; }
+.checkoutDetalleItem .compraImagen { float: left; margin: 0 1rem .5rem 0; }
+.checkoutDetalleFila { flex-wrap: wrap; gap: .5rem; }
+.comprobanteFormulario input, .carritoPago select { min-width: 0; max-width: 100%; }
+.analitica > h2 { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--borde); }
+.analitica header { margin-bottom: 1.5rem; }
+.analiticaMetricas { margin: 2rem 0; }
+@media (max-width: 900px) {
+    .catalogoGrid--compacto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+    .catalogoGrid--compacto { grid-template-columns: minmax(0, 1fr); }
+    .navbarAdmin { flex: 1 1 auto; }
+    .navbarAcceso { width: 100%; justify-content: flex-start; }
+    .navbarAcceso > .sesionUsuario { margin-left: 0; }
+    .layoutContenido { padding: 1.5rem 1rem; }
+    .compraImagen { width: 72px; height: 72px; }
+    .analiticaMetricas { grid-template-columns: minmax(0, 1fr); }
+}

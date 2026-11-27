@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ImagenCatalogo, useImagenesCatalogo } from "../features/productos/ImagenCatalogo";
 import { useSesion } from "../features/auth/useSesion";
 import { Link } from "react-router-dom";
 import { Layout } from "../components/Layout";
@@ -26,7 +27,7 @@ function formatearFecha(fecha) {
     });
 }
 
-function TarjetaOrden({ orden, instance, account }) {
+function TarjetaOrden({ orden, instance, account, imagenes }) {
     const [correo, setCorreo] = useState("");
     const [enviando, setEnviando] = useState(false);
     const [mensaje, setMensaje] = useState("");
@@ -135,6 +136,7 @@ function TarjetaOrden({ orden, instance, account }) {
                         {items.map((item, index) => (
                             <tr key={`${item.productoId}-${index}`}>
                                 <td>
+                                    <ImagenCatalogo imagen={imagenes.get(String(item.productoId))} nombre={item.nombreProducto} />
                                         <span className="ordenProductoNombre">
                                             {item.nombreProducto}
                                         </span>
@@ -221,6 +223,7 @@ function TarjetaOrden({ orden, instance, account }) {
 }
 
 export function MisOrdenes() {
+    const imagenes = useImagenesCatalogo();
     const {
         instance,
         accounts,
@@ -350,6 +353,7 @@ export function MisOrdenes() {
                                 orden={orden}
                                 instance={instance}
                                 account={account}
+                                imagenes={imagenes}
                             />
                         ))}
                     </div>
