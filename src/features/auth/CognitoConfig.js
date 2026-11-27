@@ -13,7 +13,7 @@ export const cognitoManager = new UserManager({
     }),
 });
 
-export function completarInicioCognito() {
+export function completarInicioCognito(usuario) {
     sessionStorage.removeItem("snkrlab-cognito-login");
 
     const retorno = new URL(
@@ -23,15 +23,17 @@ export function completarInicioCognito() {
     window.history.replaceState(
         {},
         document.title,
-        retorno.pathname
+        usuario?.state?.retomarWebpay
+            ? (import.meta.env.VITE_BASENAME || import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/pago/resultado"
+            : retorno.pathname
     );
 }
 
-export async function iniciarSesionCognito() {
+export async function iniciarSesionCognito(retomarWebpay = false) {
     sessionStorage.setItem("snkrlab-cognito-login", "true");
 
     try {
-        await cognitoManager.signinRedirect();
+        await cognitoManager.signinRedirect({ state: { retomarWebpay: retomarWebpay === true } });
     } catch (error) {
         sessionStorage.removeItem("snkrlab-cognito-login");
         throw error;

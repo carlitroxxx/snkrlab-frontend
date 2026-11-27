@@ -1,26 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useSesion } from "../features/auth/useSesion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     obtenerMiCarrito,
     actualizarCantidad,
     eliminarItem,
-    iniciarCheckout, pagarCheckout, confirmarCheckout,
+    iniciarCheckout, pagarCheckout, confirmarCheckout, iniciarWebpay, sincronizarWebpay, consultarCheckout,
 } from "../features/carrito/carritoApi";
 import { Layout } from "../components/Layout";
 import { Precio } from "../components/Precio";
 import { Boton } from "../components/Boton";
 import { loginRequest } from "../features/auth/AuthConfig";
+import { leerOperacion, enviarFormularioWebpay, validarFormularioWebpay, mensajePago, confirmarSiAprobado, recuperarCompraConfirmada, liberarRechazado, seleccionSimulada, advertirTarjetaPendiente } from "../features/carrito/webpay";
 import { enviarComprobante } from "../features/ordenes/ordenesApi";
 
-export function Carrito() {
+export function Carrito({ resultadoWebpay = false }) {
     const { cuenta, cargandoSesion } = useSesion();
     if (cargandoSesion) return <Layout><p>Cargando sesión...</p></Layout>;
-    return <CarritoUsuario key={cuenta?.homeAccountId || "visitante"} />;
+    return <CarritoUsuario key={cuenta?.homeAccountId || "visitante"} resultadoWebpay={resultadoWebpay} />;
 }
 
 const TARJETAS = ["SIM_TARJETA_01", "SIM_TARJETA_02", "SIM_TARJETA_03"];
-function CarritoUsuario() {
+function CarritoUsuario({ resultadoWebpay }) {
+    const navigate = useNavigate();
     const {
         instance,
         accounts,
@@ -33,15 +35,21 @@ function CarritoUsuario() {
         vigente.current = true;
         return () => { vigente.current = false; };
     }, []);
-    const [operacion, setOperacion] = useState(null);
-    const [referencia, setReferencia] = useState("SIM_APROBADA_01");
-    const [tarjeta, setTarjeta] = useState("SIM_TARJETA_01");
+    const [inicial] = useState(() => {
+        try { return { datos: leerOperacion(localStorage.getItem(claveCheckout)), error: null }; }
+        catch { return { datos: null, error: "No se pudo recuperar el checkout guardado. No se iniciará otra compra." }; }
+    });
+    const [operacion, setOperacion] = useState(inicial.datos);
+    const [modalidad, setModalidad] = useState(inicial.datos?.modalidad || "WEBPAY");
+    const retornoProcesado = useRef(false);
+    const [referencia, setReferencia] = useState(inicial.datos?.referenciaPago || "SIM_APROBADA_01");
+    const [tarjeta, setTarjeta] = useState(inicial.datos ? inicial.datos.tarjetaId ?? "" : "SIM_TARJETA_01");
     const [puedeElegirTarjeta, setPuedeElegirTarjeta] = useState(false);
-    const [persistenciaLista, setPersistenciaLista] = useState(false);
+    const [persistenciaLista, setPersistenciaLista] = useState(!inicial.error);
 
     const [items, setItems] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState(inicial.error);
     const [confirmando, setConfirmando] = useState(false);
     const [resultadoCompra, setResultadoCompra] = useState(null);
     const [correo, setCorreo] = useState("");
@@ -63,69 +71,114 @@ function CarritoUsuario() {
     };
 
     useEffect(() => {
+        let activo = true;
         if (isAuthenticated) {
-            cargarCarrito();
-        } else {
-            setCargando(false);
+            (async () => {
+                if (!resultadoWebpay && inicial.datos) {
+                    const checkout = await consultarCheckout(instance, accounts[0], inicial.datos.checkoutId);
+                    if (checkout?.checkoutId !== inicial.datos.checkoutId) throw new Error("Checkout incompatible.");
+                    const recuperada = await recuperarCompraConfirmada(checkout,
+                        () => obtenerMiCarrito(instance, accounts[0]), localStorage, claveCheckout);
+                    if (recuperada) {
+                        if (activo && recuperada.liberado) setOperacion(null);
+                        return recuperada.items;
+                    }
+                }
+                return obtenerMiCarrito(instance, accounts[0]);
+            })()
+                .then(data => { if (activo) setItems(data || []); })
+                .catch(err => { if (activo) setError(err.message); })
+                .finally(() => { if (activo) setCargando(false); });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated]);
-
-    const manejarCambioCantidad = async (itemId, cantidad) => {
-        if (cantidad < 1 || ocupado.current || operacion) return;
-        await actualizarCantidad(instance, accounts[0], itemId, cantidad);
-        cargarCarrito();
-    };
-
-    const manejarEliminar = async (itemId) => {
-        if (ocupado.current || operacion) return;
-        await eliminarItem(instance, accounts[0], itemId);
-        cargarCarrito();
-    };
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
+        return () => { activo = false; };
+    }, [isAuthenticated, instance, accounts, resultadoWebpay, inicial, claveCheckout]);
+    const editarCarrito = async (editar) => {
+        if (ocupado.current || !persistenciaLista) return;
+        ocupado.current = true;
+        setConfirmando(true);
         try {
-            const guardada = localStorage.getItem(claveCheckout);
-            if (guardada) {
-                const datos = JSON.parse(guardada);
-                if (!/^[0-9a-f-]{36}$/i.test(datos.checkoutId || "")
-                    || !["SIM_APROBADA_01", "SIM_RECHAZADA_01"].includes(datos.referenciaPago))
-                    throw new Error("La operación guardada no es válida.");
-                if (datos.tarjetaId != null && !TARJETAS.includes(datos.tarjetaId))
-                    throw new Error("Tarjeta guardada no válida.");
-                setTarjeta(datos.tarjetaId ?? "");
-                setOperacion(datos);
-                setReferencia(datos.referenciaPago);
+            const actual = leerOperacion(localStorage.getItem(claveCheckout));
+            if (actual) {
+                await liberarRechazado(actual, () => consultarCheckout(instance, accounts[0], actual.checkoutId),
+                    localStorage, claveCheckout);
+                setOperacion(null);
             }
-            setPersistenciaLista(true);
-        } catch {
-            setError("No se pudo recuperar el checkout guardado. No se iniciará otra compra.");
+            await editar();
+            await cargarCarrito();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            ocupado.current = false;
+            setConfirmando(false);
         }
-    }, [claveCheckout, isAuthenticated]);
-
+    };
+    const manejarCambioCantidad = (itemId, cantidad) => {
+        if (cantidad < 1) return;
+        return editarCarrito(() => actualizarCantidad(instance, accounts[0], itemId, cantidad));
+    };
+    const manejarEliminar = (itemId) =>
+        editarCarrito(() => eliminarItem(instance, accounts[0], itemId));
+    useEffect(() => {
+        const actualizar = (event) => {
+            if (event.key !== claveCheckout) return;
+            try {
+                const datos = leerOperacion(event.newValue);
+                setOperacion(datos);
+                if (datos) {
+                    setModalidad(datos.modalidad);
+                    setTarjeta(datos.tarjetaId ?? "");
+                    setReferencia(datos.referenciaPago);
+                }
+                setPersistenciaLista(true);
+            } catch {
+                setPersistenciaLista(false);
+                setError("No se pudo recuperar la compra actualizada en otra pestaña.");
+            }
+        };
+        window.addEventListener("storage", actualizar);
+        return () => window.removeEventListener("storage", actualizar);
+    }, [claveCheckout]);
+    useEffect(() => {
+        const restaurar = (event) => {
+            if (event.persisted) { ocupado.current = false; setConfirmando(false); }
+        };
+        window.addEventListener("pageshow", restaurar);
+        return () => window.removeEventListener("pageshow", restaurar);
+    }, []);
     const guardarOperacion = (datos) => {
         localStorage.setItem(claveCheckout, JSON.stringify(datos));
         if (vigente.current) setOperacion(datos);
+                setModalidad(datos.modalidad);
     };
 
-    const manejarCheckout = async () => {
+    const manejarCheckout = async (reabrir = false) => {
         if (ocupado.current || !persistenciaLista || !accounts[0]) return;
         ocupado.current = true;
         setConfirmando(true);
         setError(null);
+        let redirigiendo = false;
         let actual = operacion;
         try {
+            actual = leerOperacion(localStorage.getItem(claveCheckout));
+            if (actual?.estado === "RECHAZADO" && reabrir === true) {
+                await liberarRechazado(actual, () => consultarCheckout(instance, accounts[0], actual.checkoutId),
+                    localStorage, claveCheckout);
+                actual = null;
+                setOperacion(null);
+            }
             // Persistir antes de enviar: un fallo de red nunca genera otro UUID.
+            if (!actual && resultadoWebpay && reabrir !== true) throw new Error("No hay una compra guardada para esta cuenta. Revisa Mis órdenes o vuelve con la cuenta que inició el pago.");
             if (!actual) {
                 actual = {
                     checkoutId: crypto.randomUUID(),
-                    referenciaPago: referencia,
-                    tarjetaId: tarjeta,
+                    modalidad,
+                    referenciaPago: modalidad === "WEBPAY" ? "WEBPAY" : seleccionSimulada(tarjeta, referencia).referencia,
+                    tarjetaId: modalidad === "WEBPAY" ? null : seleccionSimulada(tarjeta, referencia).tarjeta,
                     estado: "INICIADO",
                 };
                 guardarOperacion(actual);
             }
+            if (resultadoWebpay && reabrir !== true && actual.modalidad !== "WEBPAY") throw new Error("La compra guardada es simulada. Retómala desde el carrito.");
             const aceptar = (respuesta) => {
                 if (!respuesta || respuesta.checkoutId !== actual.checkoutId
                     || !["INICIADO", "ORDEN_PENDIENTE", "PAGO_INCIERTO",
@@ -134,51 +187,60 @@ function CarritoUsuario() {
                 if (respuesta.tarjetaId != null && (!TARJETAS.includes(respuesta.tarjetaId)
                     || (actual.tarjetaId != null && actual.tarjetaId !== respuesta.tarjetaId)))
                     throw new Error("La tarjeta del checkout no coincide. Revisa la operación.");
-                actual = { ...actual, estado: respuesta.estado,
+                if (respuesta.referenciaPago && respuesta.referenciaPago !== actual.referenciaPago) throw new Error("La modalidad del checkout no coincide.");
+                actual = { ...actual, estado: respuesta.estado, resultadoPago: respuesta.resultadoPago,
                     tarjetaId: respuesta.tarjetaId ?? actual.tarjetaId };
                 guardarOperacion(actual);
                 return respuesta;
             };
-            let checkout;
-            if (!["PAGO_APROBADO", "CONFIRMADO"].includes(actual.estado)) {
-                checkout = aceptar(await iniciarCheckout(instance, accounts[0], actual.checkoutId));
-                if (!vigente.current) return;
+            let checkout = aceptar(await iniciarCheckout(instance, accounts[0], actual.checkoutId));
+            if (!vigente.current) return;
+            if (actual.modalidad === "WEBPAY") {
                 if (["ORDEN_PENDIENTE", "PAGO_INCIERTO"].includes(checkout.estado)) {
-                    if (!actual.tarjetaId && !checkout.intentoId) {
-                        setPuedeElegirTarjeta(true);
-                        throw new Error("Esta compra anterior aún no tiene intento de pago. Selecciona una tarjeta de prueba para continuar con la misma compra.");
+                    let respuesta;
+                    if (reabrir !== true && (actual.enviadoWebpay || (resultadoWebpay && checkout.intentoId))) {
+                        respuesta = await sincronizarWebpay(instance, accounts[0], actual.checkoutId);
+                    } else {
+                        respuesta = await iniciarWebpay(instance, accounts[0], actual.checkoutId);
                     }
-                    setPuedeElegirTarjeta(false);
-                    actual = { ...actual, estado: "PAGO_INCIERTO" };
-                    guardarOperacion(actual);
-                    checkout = aceptar(await pagarCheckout(instance, accounts[0],
-                        actual.checkoutId, actual.referenciaPago, actual.tarjetaId));
+                    if (!vigente.current) return;
+                    checkout = aceptar(respuesta?.checkout);
+                    if (respuesta.token && respuesta.url && checkout.estado === "PAGO_INCIERTO") {
+                        validarFormularioWebpay(respuesta.url, respuesta.token);
+                        guardarOperacion({ ...actual, enviadoWebpay: true });
+                        enviarFormularioWebpay(respuesta.url, respuesta.token);
+                        redirigiendo = true;
+                        return;
+                    }
                 }
-                if (!vigente.current) return;
-                if (checkout.estado === "RECHAZADO") {
-                    setError(checkout.resultadoPago === "BLOQUEADO_FRAUDE"
-                        ? "Pago bloqueado por el control antifraude. Tu carrito se conserva."
-                        : "Pago rechazado. Tu carrito se conserva.");
-                    return;
+            } else if (["ORDEN_PENDIENTE", "PAGO_INCIERTO"].includes(checkout.estado)) {
+                if (!actual.tarjetaId && !checkout.intentoId) {
+                    setPuedeElegirTarjeta(true);
+                    throw new Error("Selecciona una tarjeta simulada para continuar con esta compra.");
                 }
+                setPuedeElegirTarjeta(false);
+                guardarOperacion({ ...actual, estado: "PAGO_INCIERTO" });
+                checkout = aceptar(await pagarCheckout(instance, accounts[0],
+                    actual.checkoutId, actual.referenciaPago, actual.tarjetaId));
             }
-            if (["PAGO_APROBADO", "CONFIRMADO"].includes(actual.estado)) {
-                // También recupera el comprobante tras recargar. Nunca repite el pago.
-                checkout = aceptar(await confirmarCheckout(instance, accounts[0], actual.checkoutId));
+            if (!vigente.current) return;
+            checkout = aceptar(await confirmarSiAprobado(checkout,
+                () => confirmarCheckout(instance, accounts[0], actual.checkoutId)));
+            if (!["PAGO_APROBADO", "CONFIRMADO"].includes(checkout.estado)) {
+                setError(mensajePago(checkout));
+                return;
             }
             if (!vigente.current) return;
             if (checkout?.estado !== "CONFIRMADO")
                 throw new Error("Compra pendiente. Reintenta la misma operación.");
-            const carrito = await obtenerMiCarrito(instance, accounts[0]);
-            if (!Array.isArray(carrito))
-                throw new Error("Compra confirmada; falta actualizar el carrito. Reintenta.");
+            const recuperada = await recuperarCompraConfirmada(checkout,
+                () => obtenerMiCarrito(instance, accounts[0]), localStorage, claveCheckout);
             if (!vigente.current) return;
-            setItems(carrito);
-            localStorage.removeItem(claveCheckout);
-            setOperacion(null);
+            setItems(recuperada.items);
+            if (recuperada.liberado) setOperacion(null);
             setResultadoCompra({
                 ordenId: checkout.ordenId,
-                mensaje: "Compra confirmada con pago simulado aprobado.",
+                mensaje: actual.modalidad === "WEBPAY" ? "Compra confirmada con Webpay Plus." : "Compra confirmada con pago simulado aprobado.",
                 items: checkout.articulos,
                 cantidadItems: checkout.articulos.length,
                 total: checkout.importePago,
@@ -186,28 +248,16 @@ function CarritoUsuario() {
         } catch (err) {
             if (vigente.current) setError(err.message + " La operación se conserva para reintentar.");
         } finally {
-            ocupado.current = false;
-            if (vigente.current) setConfirmando(false);
+            ocupado.current = redirigiendo;
+            if (vigente.current && !redirigiendo) setConfirmando(false);
         }
     };
 
-    const nuevaCompraTrasRechazo = () => {
-        if (ocupado.current || operacion?.estado !== "RECHAZADO") return;
-        try {
-            localStorage.removeItem(claveCheckout);
-            setOperacion(null);
-            setTarjeta("SIM_TARJETA_01");
-            setPuedeElegirTarjeta(false);
-            setError(null);
-        } catch {
-            setError("No se pudo liberar el intento rechazado.");
-        }
-    };
     const seleccionarTarjeta = (valor) => {
         if (ocupado.current || !TARJETAS.includes(valor)) return;
-        if (operacion && !puedeElegirTarjeta) return;
+        if (operacion && operacion.estado !== "RECHAZADO" && !puedeElegirTarjeta) return;
         try {
-            if (operacion) guardarOperacion({ ...operacion, tarjetaId: valor });
+            if (operacion && operacion.estado !== "RECHAZADO") guardarOperacion({ ...operacion, tarjetaId: valor });
             setTarjeta(valor);
             setPuedeElegirTarjeta(false);
             setError(null);
@@ -215,6 +265,14 @@ function CarritoUsuario() {
             setError("No se pudo guardar la tarjeta. No se enviará un pago nuevo.");
         }
     };
+
+    const recuperarRetorno = useEffectEvent(() => manejarCheckout());
+    useEffect(() => {
+        if (resultadoWebpay && persistenciaLista && isAuthenticated && !retornoProcesado.current) {
+            retornoProcesado.current = true;
+            recuperarRetorno();
+        }
+    }, [resultadoWebpay, persistenciaLista, isAuthenticated]);
 
     const manejarEnviarComprobante = async (event) => {
         event.preventDefault();
@@ -344,7 +402,7 @@ function CarritoUsuario() {
                     <Link to="/ordenes" className="boton botonLinea">
                         Ver mis órdenes
                     </Link>
-                    <Link to="/"><Boton>Seguir comprando</Boton></Link>
+                    <Boton onClick={() => { setResultadoCompra(null); navigate("/carrito"); }}>Volver al carrito</Boton>
                 </div>
             </Layout>
         );
@@ -359,17 +417,31 @@ function CarritoUsuario() {
             {error && <p className="carritoError">{error}</p>}
 
             {(items.length > 0 || operacion) && (
-                <div className="carritoResumen">
+                <div className="carritoResumen carritoPago">
+                    <label htmlFor="modalidadPago">Medio de pago</label>
+                    <select id="modalidadPago" value={modalidad} disabled={confirmando || (Boolean(operacion) && operacion.estado !== "RECHAZADO") || !persistenciaLista}
+                        onChange={(event) => {
+                            setModalidad(event.target.value);
+                            if (event.target.value === "SIMULADO") {
+                                const nueva = seleccionSimulada(tarjeta, referencia);
+                                setTarjeta(nueva.tarjeta); setReferencia(nueva.referencia);
+                            }
+                        }}>
+                        <option value="WEBPAY">Webpay Plus</option>
+                        <option value="SIMULADO">Simulación antifraude</option>
+                    </select>
+                    {modalidad === "WEBPAY" && <p>Pago seguro mediante Transbank.</p>}
+                    {modalidad === "SIMULADO" && <>
                     <label htmlFor="tarjetaSimulada">Tarjeta simulada</label>
-                    <select id="tarjetaSimulada" value={tarjeta}
-                        disabled={confirmando || !persistenciaLista || (Boolean(operacion) && !puedeElegirTarjeta)}
+                    <select id="tarjetaSimulada" value={!operacion || operacion.estado === "RECHAZADO" ? seleccionSimulada(tarjeta, referencia).tarjeta : tarjeta}
+                        disabled={confirmando || !persistenciaLista || (Boolean(operacion) && operacion.estado !== "RECHAZADO" && !puedeElegirTarjeta)}
                         onChange={(event) => seleccionarTarjeta(event.target.value)}>
                         <option value="" disabled>Sin tarjeta registrada</option>
                         {TARJETAS.map((id, index) => (
-                            <option key={id} value={id}>Tarjeta de prueba {index + 1}</option>
+                            <option key={id} value={id}>{["0000 0000 0000 0001 - 12/29 - 123", "0000 0000 0000 0002 - 12/29 - 456", "0000 0000 0000 0003 - 12/29 - 789"][index]}</option>
                         ))}
                     </select>
-                    {operacion && !operacion.tarjetaId && (
+                    {advertirTarjetaPendiente(operacion) && (
                         <div role="status">
                             <p>Compra anterior sin tarjeta registrada. Usa Retomar compra para comprobar su estado.
                                 No se asignará una tarjeta a un intento existente.</p>
@@ -379,24 +451,28 @@ function CarritoUsuario() {
                             <Link to="/ordenes">Revisar mis órdenes</Link>
                         </div>
                     )}
-                    <label htmlFor="pagoSimulado">Pago simulado</label>
-                    <select id="pagoSimulado" value={referencia}
-                        disabled={confirmando || Boolean(operacion) || !persistenciaLista}
+                    <label htmlFor="pagoSimulado">Resultado simulado</label>
+                    <select id="pagoSimulado" value={!operacion || operacion.estado === "RECHAZADO" ? seleccionSimulada(tarjeta, referencia).referencia : referencia}
+                        disabled={confirmando || (Boolean(operacion) && operacion.estado !== "RECHAZADO") || !persistenciaLista}
                         onChange={(event) => setReferencia(event.target.value)}>
                         <option value="SIM_APROBADA_01">Simular pago aprobado</option>
                         <option value="SIM_RECHAZADA_01">Simular pago rechazado</option>
                     </select>
-                    {operacion?.estado === "RECHAZADO" ? (
+                    </>}
+                    {!confirmando && operacion?.modalidad === "WEBPAY" && operacion.resultadoPago === "PENDIENTE" && (
+                        <Boton disabled={confirmando} onClick={() => manejarCheckout(true)}>Volver al formulario de Webpay</Boton>
+                    )}
+                    {confirmando ? <Boton disabled>Procesando...</Boton> : operacion?.estado === "RECHAZADO" ? (
                         <div>
-                            <p role="status">Pago rechazado o bloqueado. El carrito se conserva.</p>
-                            <Boton disabled={confirmando} onClick={nuevaCompraTrasRechazo}>
-                                Preparar una nueva compra
+                            <p role="status">{mensajePago(operacion)}</p>
+                            <Boton disabled={confirmando} onClick={() => manejarCheckout(true)}>
+                                Confirmar compra
                             </Boton>
                         </div>
                     ) : (
                         <Boton onClick={manejarCheckout} disabled={confirmando || !persistenciaLista}>
                             {confirmando ? "Procesando..." :
-                                ["PAGO_APROBADO", "CONFIRMADO"].includes(operacion?.estado)
+                                operacion?.estado === "PAGO_APROBADO"
                                     ? "Reintentar confirmación"
                                     : operacion ? "Retomar compra" : "Confirmar compra"}
                         </Boton>
@@ -417,12 +493,12 @@ function CarritoUsuario() {
                                 </div>
 
                                 <div className="carritoItemCantidad">
-                                    <button disabled={confirmando || Boolean(operacion)} onClick={() => manejarCambioCantidad(item.id, item.cantidad - 1)}>-</button>
+                                    <button disabled={confirmando || !persistenciaLista || (Boolean(operacion) && operacion.estado !== "RECHAZADO")} onClick={() => manejarCambioCantidad(item.id, item.cantidad - 1)}>-</button>
                                     <span>{item.cantidad}</span>
-                                    <button disabled={confirmando || Boolean(operacion)} onClick={() => manejarCambioCantidad(item.id, item.cantidad + 1)}>+</button>
+                                    <button disabled={confirmando || !persistenciaLista || (Boolean(operacion) && operacion.estado !== "RECHAZADO")} onClick={() => manejarCambioCantidad(item.id, item.cantidad + 1)}>+</button>
                                 </div>
 
-                                <Boton disabled={confirmando || Boolean(operacion)} variante="linea" onClick={() => manejarEliminar(item.id)}>
+                                <Boton disabled={confirmando || !persistenciaLista || (Boolean(operacion) && operacion.estado !== "RECHAZADO")} variante="linea" onClick={() => manejarEliminar(item.id)}>
                                     Eliminar
                                 </Boton>
                             </div>

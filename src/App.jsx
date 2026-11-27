@@ -7,10 +7,13 @@ import { Reportes } from "./pages/Reportes";
 import { PerfilProvider } from "./features/auth/PerfilContext";
 import { RutaProtegida } from "./features/auth/RutaProtegida";
 
+import { ResultadoWebpay } from "./pages/ResultadoWebpay";
+
 function App() {
     return (
         <PerfilProvider>
             <Routes>
+                <Route path="/pago/resultado" element={<ResultadoWebpay />} />
                 <Route path="/" element={<Catalogo />} />
 
                 <Route

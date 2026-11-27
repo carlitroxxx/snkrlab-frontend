@@ -1192,3 +1192,44 @@ img {
     margin: 0;
     text-align: right;
 }
+/* Controles del pago: misma vista de cliente para ambas modalidades. */
+.carritoResumen.carritoPago {
+    display: grid;
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 0.75rem;
+    max-width: 30rem;
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.carritoPago label {
+    font-weight: 700;
+}
+
+.carritoPago select,
+.carritoPago select option {
+    background-color: #121212;
+    color: #ffffff;
+    border: 1px solid #333333;
+    color-scheme: dark;
+}
+
+.carritoPago select {
+    width: 100%;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    font: inherit;
+}
+
+.carritoPago p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.carritoPago select:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}

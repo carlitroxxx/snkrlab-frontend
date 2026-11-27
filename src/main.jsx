@@ -42,7 +42,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 skipSigninCallback={!procesarRetornoCognito}
             >
                 <BrowserRouter
-                    basename={import.meta.env.VITE_BASENAME || "/"}
+                    basename={import.meta.env.VITE_BASENAME || import.meta.env.BASE_URL || "/"}
                 >
                     <App />
                 </BrowserRouter>

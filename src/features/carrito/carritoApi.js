@@ -53,3 +53,12 @@ export function confirmarCheckout(msalInstance, account, checkoutId) {
         msalInstance, account, method: "POST",
     });
 }
+export function iniciarWebpay(msalInstance, account, id) {
+    return apiFetch(API.carrito + "/checkouts/" + id + "/webpay", { msalInstance, account, method: "POST" });
+}
+export function sincronizarWebpay(msalInstance, account, id) {
+    return apiFetch(API.carrito + "/checkouts/" + id + "/webpay/sincronizacion", { msalInstance, account, method: "POST" });
+}
+export function consultarCheckout(msalInstance, account, id) {
+    return apiFetch(API.carrito + "/checkouts/" + id, { msalInstance, account });
+}
